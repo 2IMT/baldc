@@ -71,7 +71,9 @@ struct bc_str bc_str_clone(struct bc_str v) {
 }
 
 void bc_str_free(struct bc_str* v) {
-    BC_FREE(v->data);
+    if (v->data != NULL) {
+        BC_FREE(v->data);
+    }
     *v = bc_str_new();
 }
 
