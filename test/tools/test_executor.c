@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
 
         FILE* file = popen(buffer, "r");
         if (file == NULL) {
-            fprintf(stderr, "test_executor: error: failed to run test file `%s`\n",
+            fprintf(stderr,
+                "test_executor: error: failed to run test file `%s`\n",
                 execs[i]);
         }
         size_t value = 0;
@@ -68,7 +69,8 @@ int main(int argc, char** argv) {
         printf("test_executor: running test file `%s`\n", execs[i]);
         FILE* file = popen(execs[i], "r");
         if (file == NULL) {
-            fprintf(stderr, "test_executor: error: failed to run test file `%s`\n",
+            fprintf(stderr,
+                "test_executor: error: failed to run test file `%s`\n",
                 execs[i]);
         }
 
@@ -83,9 +85,11 @@ int main(int argc, char** argv) {
         }
         buffer[read_count] = '\0';
 
-        if (read_count != TEST_RAN_LEN || memcmp(test_ran_buf, test_ran_buf, TEST_RAN_LEN) != 0) {
+        if (read_count != TEST_RAN_LEN ||
+            memcmp(test_ran_buf, test_ran_buf, TEST_RAN_LEN) != 0) {
             fprintf(stderr,
-                "test_executor: error: test file `%s` ran unsuccessfully\n", execs[i]);
+                "test_executor: error: test file `%s` ran unsuccessfully\n",
+                execs[i]);
             pclose(file);
             return 1;
         }
@@ -112,7 +116,8 @@ int main(int argc, char** argv) {
     free(buffer);
 
     if (failed_count > 0) {
-        printf("test_executor: fail: %zu out of %zu failed\n", failed_count, test_count);
+        printf("test_executor: fail: %zu out of %zu failed\n", failed_count,
+            test_count);
         return 1;
     }
 

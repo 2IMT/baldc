@@ -49,31 +49,20 @@ struct bc_tok {
     union bc_tok_val val;
 };
 
-#define BC_TOK_INIT \
-    ((struct bc_tok) { .kind = 0, .val = { 0 } })
-
-struct bc_lex_loc {
-    size_t ls;
-    size_t cs;
-    size_t le;
-    size_t ce;
+struct bc_lex_pos {
+    size_t l;
+    size_t c;
 };
 
-#define BC_LEX_LOC_INIT \
-    ((struct bc_lex_loc) { .ls = 0, .cs = 0, .le = 0, .ce = 0 })
+struct bc_lex_loc {
+    struct bc_lex_pos s;
+    struct bc_lex_pos e;
+};
 
 struct bc_lex {
     struct bc_strv src;
-    size_t pos;
-    struct bc_tok tok;
-    struct bc_lex_loc loc;
+    struct bc_lex_pos pos;
 };
-
-#define BC_LEX_INIT \
-    ((struct bc_lex) { .src = BC_STRV_INIT, \
-        .pos = 0, \
-        .tok = BC_TOK_INIT, \
-        .loc = BC_LEX_LOC_INIT })
 
 enum bc_lex_res {
     BC_LEX_ERR = -1,
@@ -81,6 +70,9 @@ enum bc_lex_res {
     BC_LEX_EMPTY,
 };
 
-enum bc_lex_res bc_lex(struct bc_lex* lex);
+struct bc_lex bc_lex_new(struct bc_strv src);
+
+enum bc_lex_res bc_lex_next(
+    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc);
 
 #endif

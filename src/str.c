@@ -6,7 +6,6 @@
 
 #include "mem.h"
 #include "utf8.h"
-#include "assert.h"
 
 static void _ensure_cap(struct bc_str* v, size_t atleast) {
     bc_str_reserve(v, atleast);
@@ -15,16 +14,40 @@ static void _ensure_cap(struct bc_str* v, size_t atleast) {
     }
 }
 
-struct bc_strv bc_strv_from(const char* str) {
+struct bc_strv bc_strv_from_cstr(const char* str) {
     size_t n = strlen(str);
-    return bc_strv_fromn(str, n);
+    return bc_strv_from_cstrn(str, n);
 }
 
-struct bc_strv bc_strv_fromn(const char* str, size_t n) {
+struct bc_strv bc_strv_from_cstrn(const char* str, size_t n) {
     return (struct bc_strv) {
         .data = str,
         .len = n,
     };
+}
+
+struct bc_str bc_str_new() {
+    return (struct bc_str) {
+        .data = NULL,
+        .cap = 0,
+        .len = 0,
+    };
+}
+
+struct bc_str bc_str_from_cstr(const char* str) {
+    size_t n = strlen(str);
+    return bc_str_from_cstrn(str, n);
+}
+
+struct bc_str bc_str_from_cstrn(const char* str, size_t n) {
+    struct bc_str res = {
+        .data = BC_MALLOC(n),
+        .cap = n,
+        .len = n,
+    };
+    bc_mem_check(res.data);
+    memcpy(res.data, str, n);
+    return res;
 }
 
 void bc_str_reserve(struct bc_str* v, size_t cap) {
@@ -32,38 +55,38 @@ void bc_str_reserve(struct bc_str* v, size_t cap) {
         return;
     }
     v->data = BC_REALLOC(v->data, cap);
-    BC_ASSERT_NOT_NULL(v->data);
+    bc_mem_check(v->data);
     v->cap = cap;
 }
 
-struct bc_str bc_str_clone(const struct bc_str* v) {
+struct bc_str bc_str_clone(struct bc_str v) {
     struct bc_str res = {
-        .len = v->len,
-        .cap = v->cap,
-        .data = BC_MALLOC(v->cap),
+        .len = v.len,
+        .cap = v.cap,
+        .data = BC_MALLOC(v.cap),
     };
-    BC_ASSERT_NOT_NULL(res.data);
-    memcpy(res.data, v->data, v->cap);
+    bc_mem_check(res.data);
+    memcpy(res.data, v.data, v.cap);
     return res;
 }
 
 void bc_str_free(struct bc_str* v) {
     BC_FREE(v->data);
-    *v = BC_STR_INIT;
+    *v = bc_str_new();
 }
 
-void bc_str_push(struct bc_str* v, const char* str) {
+void bc_str_push_cstr(struct bc_str* v, const char* str) {
     size_t n = strlen(str);
-    bc_str_pushn(v, str, n);
+    bc_str_push_cstrn(v, str, n);
 }
 
-void bc_str_pushn(struct bc_str* v, const char* str, size_t n) {
+void bc_str_push_cstrn(struct bc_str* v, const char* str, size_t n) {
     _ensure_cap(v, v->len + n);
     memcpy(v->data + v->len, str, n);
     v->len += n;
 }
 
-bool bc_str_pushc(struct bc_str* v, int32_t c) {
+bool bc_str_push_ch(struct bc_str* v, int32_t c) {
     _ensure_cap(v, v->len + 4);
     char chbytes[4] = { 0 };
     int n = bc_utf8_encode(c, chbytes);
@@ -75,8 +98,8 @@ bool bc_str_pushc(struct bc_str* v, int32_t c) {
     return true;
 }
 
-void bc_str_pushv(struct bc_str* v, struct bc_strv view) {
-    bc_str_pushn(v, view.data, view.len);
+void bc_str_push_strv(struct bc_str* v, struct bc_strv view) {
+    bc_str_push_cstrn(v, view.data, view.len);
 }
 
 struct bc_strv bc_str_to_strv(const struct bc_str* v) {
@@ -86,9 +109,9 @@ struct bc_strv bc_str_to_strv(const struct bc_str* v) {
     };
 }
 
-struct bc_strv_iter bc_strv_iter_from(const struct bc_strv* v) {
+struct bc_strv_iter bc_strv_iter_new(struct bc_strv v) {
     return (struct bc_strv_iter) {
-        .str = *v,
+        .str = v,
         .pos = 0,
     };
 }
