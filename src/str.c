@@ -26,6 +26,13 @@ struct bc_strv bc_strv_from_cstrn(const char* str, size_t n) {
     };
 }
 
+struct bc_strv bc_strv_from_str(struct bc_str v) {
+    return (struct bc_strv) {
+        .data = v.data,
+        .len = v.len,
+    };
+}
+
 bool bc_strv_eq(struct bc_strv l, struct bc_strv r) {
     if (l.len != r.len) {
         return false;
@@ -55,6 +62,10 @@ struct bc_str bc_str_from_cstrn(const char* str, size_t n) {
     bc_mem_check(res.data);
     memcpy(res.data, str, n);
     return res;
+}
+
+struct bc_str bc_str_from_strv(struct bc_strv v) {
+    return bc_str_from_cstrn(v.data, v.len);
 }
 
 void bc_str_reserve(struct bc_str* v, size_t cap) {

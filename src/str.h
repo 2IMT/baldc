@@ -40,6 +40,8 @@ struct bc_strv bc_strv_from_cstrn(const char* str, size_t n);
 #define BC_STRV_FROM_LIT(literal) \
     bc_strv_from_cstrn(literal, sizeof(literal) - 1)
 
+struct bc_strv bc_strv_from_str(struct bc_str v);
+
 bool bc_strv_eq(struct bc_strv l, struct bc_strv r);
 
 struct bc_str bc_str_new(void);
@@ -49,6 +51,8 @@ struct bc_str bc_str_from_cstr(const char* str);
 struct bc_str bc_str_from_cstrn(const char* str, size_t n);
 
 #define BC_STR_FROM_LIT(literal) bc_str_from_cstrn(literal, sizeof(literal) - 1)
+
+struct bc_str bc_str_from_strv(struct bc_strv v);
 
 void bc_str_reserve(struct bc_str* v, size_t cap);
 
