@@ -198,6 +198,7 @@ int main(int argc, char** argv) {
     if (file == NULL) {
         fprintf(stderr, "error: failed to open file `%s`: %s\n", src,
             strerror(errno));
+        bc_str_free(&file_data);
         return 1;
     }
 #define BUFFER_SIZE (1024 * 8)
@@ -207,6 +208,7 @@ int main(int argc, char** argv) {
         if (ferror(file)) {
             fprintf(stderr, "error: failed to read file `%s`: %s\n", src,
                 strerror(errno));
+            bc_str_free(&file_data);
             return 1;
         }
         bc_str_push_cstrn(&file_data, buffer, bytes_read);
@@ -227,12 +229,15 @@ int main(int argc, char** argv) {
             struct bc_lex_pos pos = lex.err.pos;
             fprintf(stderr, "%s:%zu:%zu: error: ", src, pos.l, pos.c);
             _print_err(lex.err, src);
+            bc_str_free(&file_data);
             return 1;
         }
         printf(
             "%s:%zu:%zu-%zu:%zu:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
         _print_tok(tok);
     }
+
+    bc_str_free(&file_data);
 
     return 0;
 }
