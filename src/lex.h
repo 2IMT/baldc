@@ -8,40 +8,47 @@
 #include "str.h"
 
 enum bc_tok_kind {
-    BC_TOK_STRING,
-    BC_TOK_CHARACTER,
-    BC_TOK_INTEGER,
-    BC_TOK_FLOATING,
-    BC_TOK_BOOLEAN,
     BC_TOK_IDENT,
-    BC_TOK_IMPORT,
-    BC_TOK_STRUCT,
-    BC_TOK_ENUM,
-    BC_TOK_FUNC,
+    BC_TOK_LIT_STRING,
+    BC_TOK_LIT_CHARACTER,
+    BC_TOK_LIT_INTEGER,
+    BC_TOK_LIT_FLOATING,
+    BC_TOK_LIT_BOOLEAN,
+    BC_TOK_KW_IMPORT,
+    BC_TOK_KW_STRUCT,
+    BC_TOK_KW_ENUM,
+    BC_TOK_KW_FUNC,
+    BC_TOK_KW_LET,
     BC_TOK_LPAREN,
     BC_TOK_RPAREN,
     BC_TOK_LBRACE,
     BC_TOK_RBRACE,
     BC_TOK_LBRACKET,
     BC_TOK_RBRACKET,
+    BC_TOK_LANGLE,
+    BC_TOK_RANGLE,
     BC_TOK_COLON,
     BC_TOK_DOT,
     BC_TOK_COMMA,
     BC_TOK_SEMICOLON,
+    BC_TOK_EQ,
     BC_TOK_PLUS,
-    BC_TOK_MINUS,
+    BC_TOK_DASH,
     BC_TOK_STAR,
     BC_TOK_SLASH,
+    BC_TOK_AMP,
+    BC_TOK_PIPE,
+    BC_TOK_CARET,
     BC_TOK_COUNT,
 };
 
 union bc_tok_val {
-    struct bc_strv string;
-    int32_t character;
-    int64_t integer;
-    double floating;
-    bool boolean;
     struct bc_strv ident;
+    struct bc_strv string;
+    struct bc_strv character;
+    struct bc_strv integer;
+    struct bc_strv floating;
+    bool boolean;
 };
 
 struct bc_tok {
@@ -61,7 +68,12 @@ struct bc_lex_loc {
 
 struct bc_lex {
     struct bc_strv src;
+    const char* src_ptr_prev;
     struct bc_lex_pos pos;
+    struct bc_lex_pos pos_prev;
+    int32_t c;
+    bool init;
+    bool eof;
 };
 
 enum bc_lex_res {
@@ -69,6 +81,8 @@ enum bc_lex_res {
     BC_LEX_OK,
     BC_LEX_EMPTY,
 };
+
+struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e);
 
 struct bc_lex bc_lex_new(struct bc_strv src);
 

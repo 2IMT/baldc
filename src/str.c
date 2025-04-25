@@ -141,7 +141,12 @@ bool bc_str_eq_cstr(struct bc_str l, const char* r) {
     return bc_str_eq_cstrn(l, r, n);
 }
 
-bool bc_str_eq_cstrn(struct bc_str l, const char* r, size_t n);
+bool bc_str_eq_cstrn(struct bc_str l, const char* r, size_t n) {
+    if (l.len != n) {
+        return false;
+    }
+    return memcmp(l.data, r, n);
+}
 
 void bc_str_push_cstr(struct bc_str* v, const char* str) {
     size_t n = strlen(str);
