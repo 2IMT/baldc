@@ -35,7 +35,7 @@ all: $(BUILD_DIR)/$(BIN)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/$(BIN): $(OBJ_FILES)
@@ -51,7 +51,7 @@ clean:
 $(TEST_BUILD_DIR):
 	mkdir -p $(TEST_BUILD_DIR)
 
-$(TEST_BUILD_DIR)/%.o: $(TEST_DIR)/%.c $(TEST_BUILD_DIR)
+$(TEST_BUILD_DIR)/%.o: $(TEST_DIR)/%.c | $(TEST_BUILD_DIR)
 	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 $(TEST_BUILD_DIR)/%: $(TEST_BUILD_DIR)/%.o
