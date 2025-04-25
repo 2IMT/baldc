@@ -5,6 +5,40 @@
 
 #include "lex.h"
 #include "str.h"
+#include "utf8.h"
+
+static void _print_err(struct bc_lex_err err, const char* src) {
+    switch (err.kind) {
+    case BC_LEX_ERR_INVALID_UTF8_SEQUENCE: {
+        fprintf(stderr, "invalid UTF-8 sequence\n");
+
+    } break;
+    case BC_LEX_ERR_UNTERMINATED_STRING: {
+        struct bc_lex_pos pos = err.val.unterminated_string;
+        fprintf(stderr, "unterminated string literal (starts at %s:%zu:%zu)\n",
+            src, pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_UNTERMINATED_CHARACTER: {
+        struct bc_lex_pos pos = err.val.unterminated_character;
+        fprintf(stderr,
+            "unterminated character literal (starts at %s:%zu:%zu)\n", src,
+            pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER: {
+        char data[4] = { 0 };
+        bc_utf8_encode(err.val.unexpected_character_in_number, data);
+        fprintf(stderr, "unexpected character `%s` in number literal\n", data);
+    } break;
+    case BC_LEX_ERR_NO_DIGIT_AFTER_DOT: {
+        fprintf(stderr, "no digit after dot in float literal\n");
+    } break;
+    case BC_LEX_ERR_UNEXPECTED_CHARACTER: {
+        char data[4] = { 0 };
+        bc_utf8_encode(err.val.unexpected_character, data);
+        fprintf(stderr, "unexpected character `%s`\n", data);
+    } break;
+    }
+}
 
 static void _print_tok(struct bc_tok tok) {
     const char* n = NULL;
@@ -190,7 +224,9 @@ int main(int argc, char** argv) {
             break;
         }
         if (res == BC_LEX_ERR) {
-            fprintf(stderr, "error: invalid syntax\n");
+            struct bc_lex_pos pos = lex.err.pos;
+            fprintf(stderr, "%s:%zu:%zu: error: ", src, pos.l, pos.c);
+            _print_err(lex.err, src);
             return 1;
         }
         printf(

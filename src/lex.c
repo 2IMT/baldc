@@ -26,6 +26,14 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
         },
         .init = true,
         .eof = false,
+        .err = {
+            .kind = 0,
+            .val = { 0 },
+            .pos = {
+                .l = 0,
+                .c = 0
+            },
+        }
     };
 }
 
@@ -54,6 +62,15 @@ static enum bc_lex_res _nextc(struct bc_lex* lex) {
 
 enum bc_lex_res bc_lex_next(
     struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
+#define _NEXTC() \
+    { \
+        if (_nextc(lex) == BC_LEX_ERR) { \
+            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE; \
+            lex->err.pos = lex->pos_prev; \
+            return BC_LEX_ERR; \
+        } \
+    };
+
     if (lex->init) {
         _nextc(lex);
         lex->init = false;
@@ -61,7 +78,7 @@ enum bc_lex_res bc_lex_next(
     while (true) {
         if (!lex->eof) {
             if (iswspace(lex->c)) {
-                _nextc(lex);
+                _NEXTC();
                 continue;
             }
 
@@ -70,7 +87,7 @@ enum bc_lex_res bc_lex_next(
 
             // String
             if (lex->c == L'"') {
-                _nextc(lex);
+                _NEXTC();
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
@@ -87,12 +104,15 @@ enum bc_lex_res bc_lex_next(
                             escaped = true;
                         }
                     }
-                    _nextc(lex);
+                    _NEXTC();
                 }
                 if (!closed) {
+                    lex->err.kind = BC_LEX_ERR_UNTERMINATED_STRING;
+                    lex->err.val.unterminated_string = spos;
+                    lex->err.pos = lex->pos_prev;
                     return BC_LEX_ERR;
                 }
-                _nextc(lex);
+                _NEXTC();
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin + 1, lex->src_ptr_prev - 1);
 
@@ -105,7 +125,7 @@ enum bc_lex_res bc_lex_next(
 
             // Character
             if (lex->c == L'\'') {
-                _nextc(lex);
+                _NEXTC();
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
@@ -122,12 +142,15 @@ enum bc_lex_res bc_lex_next(
                             escaped = true;
                         }
                     }
-                    _nextc(lex);
+                    _NEXTC();
                 }
                 if (!closed) {
+                    lex->err.kind = BC_LEX_ERR_UNTERMINATED_CHARACTER;
+                    lex->err.val.unterminated_character = spos;
+                    lex->err.pos = lex->pos_prev;
                     return BC_LEX_ERR;
                 }
-                _nextc(lex);
+                _NEXTC();
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin + 1, lex->src_ptr_prev - 1);
 
@@ -140,7 +163,7 @@ enum bc_lex_res bc_lex_next(
 
             // Floating and integer
             if (iswdigit(lex->c)) {
-                _nextc(lex);
+                _NEXTC();
                 bool has_dot = false;
                 bool has_digit_after_dot = false;
                 while (!lex->eof) {
@@ -154,14 +177,20 @@ enum bc_lex_res bc_lex_next(
                             has_digit_after_dot = true;
                         }
                     } else if (iswalpha(lex->c)) {
+                        lex->err.kind =
+                            BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER;
+                        lex->err.val.unexpected_character_in_number = lex->c;
+                        lex->err.pos = lex->pos_prev;
                         return BC_LEX_ERR;
                     } else if (lex->c != L'_') {
                         if (has_dot && !has_digit_after_dot) {
+                            lex->err.kind = BC_LEX_ERR_NO_DIGIT_AFTER_DOT;
+                            lex->err.pos = lex->pos_prev;
                             return BC_LEX_ERR;
                         }
                         break;
                     }
-                    _nextc(lex);
+                    _NEXTC();
                 }
 
                 struct bc_strv data =
@@ -181,10 +210,10 @@ enum bc_lex_res bc_lex_next(
 
             // Ident, keywords, and boolean
             if (iswalpha(lex->c) || lex->c == L'_') {
-                _nextc(lex);
+                _NEXTC();
                 while (!lex->eof) {
                     if (iswalnum(lex->c) || lex->c == L'_') {
-                        _nextc(lex);
+                        _NEXTC();
                     } else {
                         break;
                     }
@@ -305,7 +334,7 @@ enum bc_lex_res bc_lex_next(
                 default:
                     BC_ASSERT_UNREACHABLE();
                 }
-                _nextc(lex);
+                _NEXTC();
 
                 tok->kind = kind;
                 *loc = bc_lex_loc_new(spos, lex->pos_prev);
@@ -314,6 +343,9 @@ enum bc_lex_res bc_lex_next(
             }
             }
 
+            lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
+            lex->err.val.unexpected_character = lex->c;
+            lex->err.pos = lex->pos_prev;
             return BC_LEX_ERR;
         } else {
             return BC_LEX_EMPTY;

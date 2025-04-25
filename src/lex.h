@@ -66,6 +66,28 @@ struct bc_lex_loc {
     struct bc_lex_pos e;
 };
 
+enum bc_lex_err_kind {
+    BC_LEX_ERR_INVALID_UTF8_SEQUENCE,
+    BC_LEX_ERR_UNTERMINATED_STRING,
+    BC_LEX_ERR_UNTERMINATED_CHARACTER,
+    BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER,
+    BC_LEX_ERR_NO_DIGIT_AFTER_DOT,
+    BC_LEX_ERR_UNEXPECTED_CHARACTER,
+};
+
+union bc_lex_err_val {
+    struct bc_lex_pos unterminated_string;
+    struct bc_lex_pos unterminated_character;
+    int32_t unexpected_character_in_number;
+    int32_t unexpected_character;
+};
+
+struct bc_lex_err {
+    enum bc_lex_err_kind kind;
+    union bc_lex_err_val val;
+    struct bc_lex_pos pos;
+};
+
 struct bc_lex {
     struct bc_strv src;
     const char* src_ptr_prev;
@@ -74,6 +96,7 @@ struct bc_lex {
     int32_t c;
     bool init;
     bool eof;
+    struct bc_lex_err err;
 };
 
 enum bc_lex_res {
