@@ -15,4 +15,9 @@ void bc_assert_fail(const char* file, int line, const char* assertion) {
     abort();
 }
 
+void bc_assert_unreachable_fail(const char* file, int line) {
+    fprintf(stderr, "%s:%d: UNREACHABLE CODE EXECUTED", file, line);
+    abort();
+}
+
 #endif
