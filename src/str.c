@@ -26,6 +26,10 @@ struct bc_strv bc_strv_from_cstrn(const char* str, size_t n) {
     };
 }
 
+struct bc_strv bc_strv_from_range(const char* begin, const char* end) {
+    return bc_strv_from_cstrn(begin, end - begin);
+}
+
 struct bc_strv bc_strv_from_str(struct bc_str v) {
     return (struct bc_strv) {
         .data = v.data,
@@ -81,6 +85,10 @@ struct bc_str bc_str_from_cstrn(const char* str, size_t n) {
     bc_mem_check(res.data);
     memcpy(res.data, str, n);
     return res;
+}
+
+struct bc_str bc_str_from_range(const char* begin, const char* end) {
+    return bc_str_from_cstrn(begin, end - begin);
 }
 
 struct bc_str bc_str_from_strv(struct bc_strv v) {

@@ -37,6 +37,8 @@ struct bc_strv bc_strv_from_cstr(const char* str);
 
 struct bc_strv bc_strv_from_cstrn(const char* str, size_t n);
 
+struct bc_strv bc_strv_from_range(const char* begin, const char* end);
+
 #define BC_STRV_FROM_LIT(literal) \
     bc_strv_from_cstrn(literal, sizeof(literal) - 1)
 
@@ -58,6 +60,8 @@ struct bc_str bc_str_new(void);
 struct bc_str bc_str_from_cstr(const char* str);
 
 struct bc_str bc_str_from_cstrn(const char* str, size_t n);
+
+struct bc_str bc_str_from_range(const char* begin, const char* end);
 
 #define BC_STR_FROM_LIT(literal) bc_str_from_cstrn(literal, sizeof(literal) - 1)
 
