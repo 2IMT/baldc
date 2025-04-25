@@ -40,6 +40,25 @@ bool bc_strv_eq(struct bc_strv l, struct bc_strv r) {
     return memcmp(l.data, r.data, l.len) == 0;
 }
 
+bool bc_strv_eq_str(struct bc_strv l, struct bc_str r) {
+    if (l.len != r.len) {
+        return false;
+    }
+    return memcmp(l.data, r.data, l.len) == 0;
+}
+
+bool bc_strv_eq_cstr(struct bc_strv l, const char* r) {
+    size_t n = strlen(r);
+    return bc_strv_eq_cstrn(l, r, n);
+}
+
+bool bc_strv_eq_cstrn(struct bc_strv l, const char* r, size_t n) {
+    if (l.len != n) {
+        return false;
+    }
+    return memcmp(l.data, r, n) == 0;
+}
+
 struct bc_str bc_str_new(void) {
     return (struct bc_str) {
         .data = NULL,
@@ -101,6 +120,20 @@ bool bc_str_eq(struct bc_str l, struct bc_str r) {
     }
     return memcmp(l.data, r.data, l.len) == 0;
 }
+
+bool bc_str_eq_strv(struct bc_str l, struct bc_strv r) {
+    if (l.len != r.len) {
+        return false;
+    }
+    return memcmp(l.data, r.data, l.len) == 0;
+}
+
+bool bc_str_eq_cstr(struct bc_str l, const char* r) {
+    size_t n = strlen(r);
+    return bc_str_eq_cstrn(l, r, n);
+}
+
+bool bc_str_eq_cstrn(struct bc_str l, const char* r, size_t n);
 
 void bc_str_push_cstr(struct bc_str* v, const char* str) {
     size_t n = strlen(str);

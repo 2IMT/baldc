@@ -44,6 +44,15 @@ struct bc_strv bc_strv_from_str(struct bc_str v);
 
 bool bc_strv_eq(struct bc_strv l, struct bc_strv r);
 
+bool bc_strv_eq_str(struct bc_strv l, struct bc_str r);
+
+bool bc_strv_eq_cstr(struct bc_strv l, const char* r);
+
+bool bc_strv_eq_cstrn(struct bc_strv l, const char* r, size_t n);
+
+#define BC_STRV_EQ_LIT(l, r_literal) \
+    bc_strv_eq_cstrn(l, r_literal, sizeof(r_literal) - 1)
+
 struct bc_str bc_str_new(void);
 
 struct bc_str bc_str_from_cstr(const char* str);
@@ -61,6 +70,15 @@ struct bc_str bc_str_clone(struct bc_str v);
 void bc_str_free(struct bc_str* v);
 
 bool bc_str_eq(struct bc_str l, struct bc_str r);
+
+bool bc_str_eq_strv(struct bc_str l, struct bc_strv r);
+
+bool bc_str_eq_cstr(struct bc_str l, const char* r);
+
+bool bc_str_eq_cstrn(struct bc_str l, const char* r, size_t n);
+
+#define BC_STR_EQ_LIT(l, r_literal) \
+    bc_str_eq_cstrn(l, r_literal, sizeof(r_literal) - 1)
 
 void bc_str_push_cstr(struct bc_str* v, const char* str);
 
