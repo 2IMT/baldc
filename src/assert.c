@@ -1,12 +1,17 @@
 #include "assert.h"
 
-#ifndef BALDC_RELEASE
+#ifdef BALDC_RELEASE
+
+// To avoid empty translation unit on release mode
+typedef char _bc_assert_dummy;
+
+#else
 
 #  include <stdio.h>
 #  include <stdlib.h>
 
 void bc_assert_fail(const char* file, int line, const char* assertion) {
-    fprintf(stderr, "%s:%d: assertion `%s` failed\n", file, line, assertion);
+    fprintf(stderr, "%s:%d: ASSERTION `%s' FAILED\n", file, line, assertion);
     abort();
 }
 
