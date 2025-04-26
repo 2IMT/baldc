@@ -6,6 +6,14 @@
 #include "utf8.h"
 #include "assert.h"
 
+static bool _is_bin_digit(int32_t c) { return c == L'0' || c == L'1'; }
+
+static bool _is_oct_digit(int32_t c) { return L'0' <= c && c <= L'8'; }
+
+static bool _is_hex_digit(int32_t c) {
+    return iswdigit(c) || (L'a' <= c && c <= L'f') || (L'A' <= c && c <= L'F');
+}
+
 static bool _is_sep(int32_t c) {
     switch (c) {
     case L'(':
@@ -69,6 +77,10 @@ static bool _unescape(struct bc_strv input, struct bc_strv* output,
         err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE; \
         err->val.invalid_escape_sequence = begin_pos; \
         begin_pos.c++; \
+        if (c == '\n') { \
+            begin_pos.l++; \
+            begin_pos.c = 0; \
+        } \
     }
 
     struct bc_str unescaped = {
@@ -82,6 +94,10 @@ static bool _unescape(struct bc_strv input, struct bc_strv* output,
     int32_t c = 0;
     while ((res = bc_strv_iter_next(&input_iter, &c)) == BC_STRV_ITER_OK) {
         begin_pos.c++;
+        if (c == '\n') {
+            begin_pos.l++;
+            begin_pos.c = 0;
+        }
         if (c == L'\\') {
             _ITERTRYNEXT();
 
@@ -234,6 +250,37 @@ static enum bc_lex_res _nextc(struct bc_lex* lex) {
     return BC_LEX_OK;
 }
 
+static enum bc_lex_res _recover(struct bc_lex* lex) {
+    while (!iswspace(lex->c) && !_is_sep(lex->c)) {
+        if (_nextc(lex) == BC_LEX_ERR) {
+            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE;
+            lex->err.pos = lex->pos_prev;
+            return BC_LEX_ERR;
+        }
+        if (lex->eof) {
+            return BC_LEX_EMPTY;
+        }
+    }
+    return BC_LEX_OK;
+}
+
+static enum bc_lex_res _recover_to(struct bc_lex* lex, int32_t c) {
+    while (lex->c != c) {
+        if (_nextc(lex) == BC_LEX_ERR) {
+            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE;
+            lex->err.pos = lex->pos_prev;
+            return BC_LEX_ERR;
+        }
+        if (lex->eof) {
+            return BC_LEX_EMPTY;
+        }
+    }
+    if (_nextc(lex) == BC_LEX_ERR) {
+        return BC_LEX_ERR;
+    }
+    return BC_LEX_OK;
+}
+
 enum bc_lex_res bc_lex_next(
     struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
 #define _NEXTC() \
@@ -244,6 +291,31 @@ enum bc_lex_res bc_lex_next(
             return BC_LEX_ERR; \
         } \
     };
+
+#define _RECOVER() \
+    { \
+        if (_recover(lex) == BC_LEX_ERR) { \
+            return BC_LEX_ERR; \
+        } \
+    }
+
+#define _RECOVER_TO(character) \
+    { \
+        if (_recover_to(lex, character) == BC_LEX_ERR) { \
+            return BC_LEX_ERR; \
+        } \
+    }
+
+#define _ERROR(error_kind) \
+    lex->err.kind = error_kind; \
+    lex->err.pos = lex->pos_prev; \
+    _RECOVER(); \
+    return BC_LEX_ERR;
+
+#define _ERROR_NK() \
+    lex->err.pos = lex->pos_prev; \
+    _RECOVER(); \
+    return BC_LEX_ERR;
 
     if (lex->init) {
         _nextc(lex);
@@ -268,6 +340,7 @@ enum bc_lex_res bc_lex_next(
                     if (!iswprint(lex->c) && !iswspace(lex->c)) {
                         lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
                         lex->err.pos = lex->pos_prev;
+                        _RECOVER_TO(L'"');
                         return BC_LEX_ERR;
                     }
                     if (lex->eof) {
@@ -286,7 +359,6 @@ enum bc_lex_res bc_lex_next(
                     _NEXTC();
                 }
                 if (!closed) {
-                    lex->err.kind = BC_LEX_ERR_UNTERMINATED_STRING;
                     lex->err.val.unterminated_string = spos;
                     lex->err.pos = lex->pos_prev;
                     return BC_LEX_ERR;
@@ -297,8 +369,7 @@ enum bc_lex_res bc_lex_next(
                 struct bc_strv escaped_data = { 0 };
                 if (!_unescape(data, &escaped_data, spos,
                         &lex->escaped_strings_arena, &lex->err)) {
-                    lex->err.pos = spos;
-                    return BC_LEX_ERR;
+                    _ERROR_NK();
                 }
 
                 tok->kind = BC_TOK_LIT_STRING;
@@ -317,6 +388,7 @@ enum bc_lex_res bc_lex_next(
                     if (!iswprint(lex->c) && !iswspace(lex->c)) {
                         lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
                         lex->err.pos = lex->pos_prev;
+                        _RECOVER_TO(L'\'');
                         return BC_LEX_ERR;
                     }
                     if (lex->eof) {
@@ -344,20 +416,15 @@ enum bc_lex_res bc_lex_next(
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin + 1, lex->src_ptr_prev - 1);
                 if (data.len == 0) {
-                    lex->err.kind = BC_LEX_ERR_EMPTY_CHARACTER;
-                    lex->err.pos = spos;
-                    return BC_LEX_ERR;
+                    _ERROR(BC_LEX_ERR_EMPTY_CHARACTER);
                 }
                 struct bc_strv escaped_data = { 0 };
                 if (!_unescape(data, &escaped_data, spos,
                         &lex->escaped_strings_arena, &lex->err)) {
-                    lex->err.pos = spos;
-                    return BC_LEX_ERR;
+                    _ERROR_NK();
                 }
                 if (escaped_data.len > 1) {
-                    lex->err.kind = BC_LEX_ERR_MULTICHARACTER;
-                    lex->err.pos = spos;
-                    return BC_LEX_ERR;
+                    _ERROR(BC_LEX_ERR_MULTICHARACTER);
                 }
 
                 tok->kind = BC_TOK_LIT_CHARACTER;
@@ -369,34 +436,67 @@ enum bc_lex_res bc_lex_next(
 
             // Floating and integer
             if (iswdigit(lex->c)) {
-                _NEXTC();
                 bool has_dot = false;
                 bool has_digit_after_dot = false;
+                bool has_digit_after_prefix = false;
+                int base = 10;
+
+                if (lex->c == L'0') {
+                    _NEXTC();
+                    switch (lex->c) {
+                    case L'b':
+                    case L'B':
+                        base = 2;
+                        break;
+                    case L'o':
+                    case L'O':
+                        base = 8;
+                        break;
+                    case L'x':
+                    case L'X':
+                        base = 16;
+                        break;
+                    case L'.':
+                        has_dot = true;
+                    default:
+                        lex->err.val.invalid_integer_prefix = lex->c;
+                        _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
+                    }
+                }
+
+                _NEXTC();
                 while (!lex->eof) {
-                    if (lex->c == L'.') {
+                    if (lex->c == L'.' && base == 10) {
                         if (has_dot) {
                             break;
                         }
                         has_dot = true;
-                    } else if (_is_sep(lex->c)) {
-                        break;
-                    } else if (iswdigit(lex->c)) {
+                    } else if (base == 2 && _is_bin_digit(lex->c)) {
+                        has_digit_after_prefix = true;
+                    } else if (base == 8 && _is_oct_digit(lex->c)) {
+                        has_digit_after_prefix = true;
+                    } else if (base == 10 && iswdigit(lex->c)) {
                         if (has_dot) {
                             has_digit_after_dot = true;
                         }
-                    } else if (lex->c != L'_') {
-                        if (has_dot && !has_digit_after_dot) {
-                            lex->err.kind = BC_LEX_ERR_NO_DIGIT_AFTER_DOT;
-                            lex->err.pos = lex->pos_prev;
-                            return BC_LEX_ERR;
+                    } else if (base == 16 && _is_hex_digit(lex->c)) {
+                        has_digit_after_prefix = true;
+                    } else if ((_is_sep(lex->c) || iswspace(lex->c))) {
+                        if (base == 10) {
+                            if (has_dot && !has_digit_after_dot) {
+                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_DOT);
+                            }
+                        } else {
+                            if (!has_digit_after_prefix) {
+                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                            }
                         }
                         break;
+                    } else if (lex->c == L'_') {
+                        // OK
                     } else {
-                        lex->err.kind =
-                            BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER;
                         lex->err.val.unexpected_character_in_number = lex->c;
-                        lex->err.pos = lex->pos_prev;
-                        return BC_LEX_ERR;
+                        _ERROR(BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER);
                     }
                     _NEXTC();
                 }
@@ -536,8 +636,7 @@ enum bc_lex_res bc_lex_next(
             } else {
                 lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
             }
-            lex->err.pos = lex->pos_prev;
-            return BC_LEX_ERR;
+            _ERROR_NK();
         } else {
             return BC_LEX_EMPTY;
         }

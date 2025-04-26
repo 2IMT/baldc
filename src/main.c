@@ -50,6 +50,14 @@ static void _print_err(struct bc_lex_err err, const char* src) {
     case BC_LEX_ERR_NON_PRINTABLE_CHARACTER: {
         fprintf(stderr, "non-printable character encountered\n");
     } break;
+    case BC_LEX_ERR_INVALID_INTEGER_PREFIX: {
+        char data[4] = { 0 };
+        bc_utf8_encode(err.val.invalid_integer_prefix, data);
+        fprintf(stderr, "invalid integer prefix `%s`\n", data);
+    } break;
+    case BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX: {
+        fprintf(stderr, "no digit after prefix in integer literal\n");
+    }
     }
 }
 
@@ -193,7 +201,8 @@ static void _print_tok(struct bc_tok tok) {
         v = BC_STRV_FROM_LIT("[invalid]");
     }
     char delim_str[] = { delim, '\0' };
-    printf("%s\t%s" BC_STRV_FORMAT "%s\n", n, delim_str, BC_STRV_FORMATV(v), delim_str);
+    printf("%s\t%s" BC_STRV_FORMAT "%s\n", n, delim_str, BC_STRV_FORMATV(v),
+        delim_str);
 }
 
 int main(int argc, char** argv) {
@@ -241,13 +250,11 @@ int main(int argc, char** argv) {
             struct bc_lex_pos pos = lex.err.pos;
             fprintf(stderr, "%s:%zu:%zu: error: ", src, pos.l, pos.c);
             _print_err(lex.err, src);
-            bc_lex_free(lex);
-            bc_str_free(&file_data);
-            return 1;
+        } else {
+            printf("%s:%zu:%zu-%zu:%zu:\t", src, loc.s.l, loc.s.c, loc.e.l,
+                loc.e.c);
+            _print_tok(tok);
         }
-        printf(
-            "%s:%zu:%zu-%zu:%zu:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
-        _print_tok(tok);
     }
 
     bc_lex_free(lex);

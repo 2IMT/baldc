@@ -78,6 +78,8 @@ enum bc_lex_err_kind {
     BC_LEX_ERR_MULTICHARACTER,
     BC_LEX_ERR_EMPTY_CHARACTER,
     BC_LEX_ERR_NON_PRINTABLE_CHARACTER,
+    BC_LEX_ERR_INVALID_INTEGER_PREFIX,
+    BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX,
 };
 
 union bc_lex_err_val {
@@ -86,6 +88,7 @@ union bc_lex_err_val {
     int32_t unexpected_character_in_number;
     int32_t unexpected_character;
     struct bc_lex_pos invalid_escape_sequence;
+    int32_t invalid_integer_prefix;
 };
 
 struct bc_lex_err {
