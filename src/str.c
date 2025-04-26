@@ -155,12 +155,34 @@ void bc_str_push_cstr(struct bc_str* v, const char* str) {
 
 void bc_str_push_cstrn(struct bc_str* v, const char* str, size_t n) {
     _ensure_cap(v, v->len + n);
-    memcpy(v->data + v->len, str, n);
-    v->len += n;
+    bc_str_push_cstrn_unchecked(v, str, n);
 }
 
 bool bc_str_push_ch(struct bc_str* v, int32_t c) {
     _ensure_cap(v, v->len + 4);
+    return bc_str_push_ch_unchecked(v, c);
+}
+
+void bc_str_push_cch(struct bc_str* v, char c) {
+    _ensure_cap(v, v->len + 1);
+    bc_str_push_cch_unchecked(v, c);
+}
+
+void bc_str_push_strv(struct bc_str* v, struct bc_strv view) {
+    bc_str_push_cstrn(v, view.data, view.len);
+}
+
+void bc_str_push_cstr_unchecked(struct bc_str* v, const char* str) {
+    size_t n = strlen(str);
+    bc_str_push_cstrn_unchecked(v, str, n);
+}
+
+void bc_str_push_cstrn_unchecked(struct bc_str* v, const char* str, size_t n) {
+    memcpy(v->data + v->len, str, n);
+    v->len += n;
+}
+
+bool bc_str_push_ch_unchecked(struct bc_str* v, int32_t c) {
     char chbytes[4] = { 0 };
     int n = bc_utf8_encode(c, chbytes);
     if (n == -1) {
@@ -171,8 +193,13 @@ bool bc_str_push_ch(struct bc_str* v, int32_t c) {
     return true;
 }
 
-void bc_str_push_strv(struct bc_str* v, struct bc_strv view) {
-    bc_str_push_cstrn(v, view.data, view.len);
+void bc_str_push_cch_unchecked(struct bc_str* v, char c) {
+    memcpy(v->data + v->len, &c, 1);
+    v->len += 1;
+}
+
+void bc_str_push_strv_unchecked(struct bc_str* v, struct bc_strv view) {
+    bc_str_push_cstrn_unchecked(v, view.data, view.len);
 }
 
 struct bc_strv bc_str_to_strv(const struct bc_str* v) {

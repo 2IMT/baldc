@@ -90,7 +90,19 @@ void bc_str_push_cstrn(struct bc_str* v, const char* str, size_t n);
 
 bool bc_str_push_ch(struct bc_str* v, int32_t c);
 
+void bc_str_push_cch(struct bc_str* v, char c);
+
 void bc_str_push_strv(struct bc_str* v, struct bc_strv view);
+
+void bc_str_push_cstr_unchecked(struct bc_str* v, const char* str);
+
+void bc_str_push_cstrn_unchecked(struct bc_str* v, const char* str, size_t n);
+
+bool bc_str_push_ch_unchecked(struct bc_str* v, int32_t c);
+
+void bc_str_push_cch_unchecked(struct bc_str* v, char c);
+
+void bc_str_push_strv_unchecked(struct bc_str* v, struct bc_strv view);
 
 struct bc_strv_iter bc_strv_iter_new(struct bc_strv v);
 
