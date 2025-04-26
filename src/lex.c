@@ -6,7 +6,36 @@
 #include "utf8.h"
 #include "assert.h"
 
-static bool _parse_hex_digits(const int32_t* digits, size_t len, int32_t* codepoint) {
+static bool _is_sep(int32_t c) {
+    switch (c) {
+    case L'(':
+    case L')':
+    case L'{':
+    case L'}':
+    case L'[':
+    case L']':
+    case L'<':
+    case L'>':
+    case L':':
+    case L'.':
+    case L',':
+    case L';':
+    case L'=':
+    case L'+':
+    case L'-':
+    case L'*':
+    case L'/':
+    case L'&':
+    case L'|':
+    case L'^':
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool _parse_hex_digits(
+    const int32_t* digits, size_t len, int32_t* codepoint) {
     int32_t result = 0;
     for (size_t i = 0; i < len; ++i) {
         int32_t c = digits[i];
@@ -349,16 +378,12 @@ enum bc_lex_res bc_lex_next(
                             break;
                         }
                         has_dot = true;
+                    } else if (_is_sep(lex->c)) {
+                        break;
                     } else if (iswdigit(lex->c)) {
                         if (has_dot) {
                             has_digit_after_dot = true;
                         }
-                    } else if (iswalpha(lex->c)) {
-                        lex->err.kind =
-                            BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER;
-                        lex->err.val.unexpected_character_in_number = lex->c;
-                        lex->err.pos = lex->pos_prev;
-                        return BC_LEX_ERR;
                     } else if (lex->c != L'_') {
                         if (has_dot && !has_digit_after_dot) {
                             lex->err.kind = BC_LEX_ERR_NO_DIGIT_AFTER_DOT;
@@ -366,6 +391,12 @@ enum bc_lex_res bc_lex_next(
                             return BC_LEX_ERR;
                         }
                         break;
+                    } else {
+                        lex->err.kind =
+                            BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER;
+                        lex->err.val.unexpected_character_in_number = lex->c;
+                        lex->err.pos = lex->pos_prev;
+                        return BC_LEX_ERR;
                     }
                     _NEXTC();
                 }
@@ -425,27 +456,7 @@ enum bc_lex_res bc_lex_next(
             }
 
             // Single character tokens
-            switch (lex->c) {
-            case L'(':
-            case L')':
-            case L'{':
-            case L'}':
-            case L'[':
-            case L']':
-            case L'<':
-            case L'>':
-            case L':':
-            case L'.':
-            case L',':
-            case L';':
-            case L'=':
-            case L'+':
-            case L'-':
-            case L'*':
-            case L'/':
-            case L'&':
-            case L'|':
-            case L'^': {
+            if (_is_sep(lex->c)) {
                 enum bc_tok_kind kind = 0;
                 switch (lex->c) {
                 case L'(':
@@ -517,7 +528,6 @@ enum bc_lex_res bc_lex_next(
                 *loc = bc_lex_loc_new(spos, lex->pos_prev);
 
                 return BC_LEX_OK;
-            }
             }
 
             if (iswprint(lex->c)) {
