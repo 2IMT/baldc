@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #include "str.h"
+#include "mem.h"
 
 enum bc_tok_kind {
     BC_TOK_IDENT,
@@ -73,6 +74,9 @@ enum bc_lex_err_kind {
     BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER,
     BC_LEX_ERR_NO_DIGIT_AFTER_DOT,
     BC_LEX_ERR_UNEXPECTED_CHARACTER,
+    BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE,
+    BC_LEX_ERR_MULTICHARACTER,
+    BC_LEX_ERR_EMPTY_CHARACTER
 };
 
 union bc_lex_err_val {
@@ -80,6 +84,7 @@ union bc_lex_err_val {
     struct bc_lex_pos unterminated_character;
     int32_t unexpected_character_in_number;
     int32_t unexpected_character;
+    struct bc_lex_pos invalid_escape_sequence;
 };
 
 struct bc_lex_err {
@@ -89,6 +94,7 @@ struct bc_lex_err {
 };
 
 struct bc_lex {
+    struct bc_mem_arena escaped_strings_arena;
     struct bc_strv src;
     const char* src_ptr_prev;
     struct bc_lex_pos pos;
@@ -108,6 +114,8 @@ enum bc_lex_res {
 struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e);
 
 struct bc_lex bc_lex_new(struct bc_strv src);
+
+void bc_lex_free(struct bc_lex lex);
 
 enum bc_lex_res bc_lex_next(
     struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc);

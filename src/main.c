@@ -37,12 +37,23 @@ static void _print_err(struct bc_lex_err err, const char* src) {
         bc_utf8_encode(err.val.unexpected_character, data);
         fprintf(stderr, "unexpected character `%s`\n", data);
     } break;
+    case BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE: {
+        struct bc_lex_pos pos = err.val.invalid_escape_sequence;
+        fprintf(stderr, "invalid escape sequence at %zu:%zu\n", pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_MULTICHARACTER: {
+        fprintf(stderr, "character literal contains more than one character\n");
+    } break;
+    case BC_LEX_ERR_EMPTY_CHARACTER: {
+        fprintf(stderr, "character literal is empty\n");
+    } break;
     }
 }
 
 static void _print_tok(struct bc_tok tok) {
     const char* n = NULL;
     struct bc_strv v;
+    char delim = '\0';
     switch (tok.kind) {
     case BC_TOK_IDENT:
         n = "ident";
@@ -51,14 +62,12 @@ static void _print_tok(struct bc_tok tok) {
     case BC_TOK_LIT_STRING:
         n = "literal";
         v = tok.val.string;
-        v.data--;
-        v.len += 2;
+        delim = '"';
         break;
     case BC_TOK_LIT_CHARACTER:
         n = "literal";
         v = tok.val.character;
-        v.data--;
-        v.len += 2;
+        delim = '\'';
         break;
     case BC_TOK_LIT_INTEGER:
         n = "literal";
@@ -180,8 +189,8 @@ static void _print_tok(struct bc_tok tok) {
         n = "[invalid]";
         v = BC_STRV_FROM_LIT("[invalid]");
     }
-
-    printf("%s\t" BC_STRV_FORMAT "\n", n, BC_STRV_FORMATV(v));
+    char delim_str[] = { delim, '\0' };
+    printf("%s\t%s" BC_STRV_FORMAT "%s\n", n, delim_str, BC_STRV_FORMATV(v), delim_str);
 }
 
 int main(int argc, char** argv) {
@@ -229,6 +238,7 @@ int main(int argc, char** argv) {
             struct bc_lex_pos pos = lex.err.pos;
             fprintf(stderr, "%s:%zu:%zu: error: ", src, pos.l, pos.c);
             _print_err(lex.err, src);
+            bc_lex_free(lex);
             bc_str_free(&file_data);
             return 1;
         }
@@ -237,6 +247,7 @@ int main(int argc, char** argv) {
         _print_tok(tok);
     }
 
+    bc_lex_free(lex);
     bc_str_free(&file_data);
 
     return 0;

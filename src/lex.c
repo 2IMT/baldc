@@ -6,6 +6,82 @@
 #include "utf8.h"
 #include "assert.h"
 
+bool _unescape(struct bc_strv input, struct bc_strv* output,
+    struct bc_lex_pos begin_pos, struct bc_mem_arena* arena,
+    struct bc_lex_err* err) {
+#define _ITERNEXT() \
+    { \
+        enum bc_strv_iter_res res = bc_strv_iter_next(&input_iter, &c); \
+        if (res != BC_STRV_ITER_OK) { \
+            return false; \
+        } \
+        err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE; \
+        err->val.invalid_escape_sequence = begin_pos; \
+    }
+
+    struct bc_str unescaped = {
+        .data = bc_mem_arena_alloc(arena, input.len),
+        .len = 0,
+        .cap = input.len,
+    };
+
+    struct bc_strv_iter input_iter = bc_strv_iter_new(input);
+    enum bc_strv_iter_res res = BC_STRV_ITER_OK;
+    int32_t c = 0;
+    while ((res = bc_strv_iter_next(&input_iter, &c)) == BC_STRV_ITER_OK) {
+        begin_pos.c++;
+        if (c == L'\\') {
+            _ITERNEXT();
+            begin_pos.c++;
+
+            switch (c) {
+            case L'\\': {
+                bc_str_push_cch_unchecked(&unescaped, '\\');
+            } break;
+            case L'"': {
+                bc_str_push_cch_unchecked(&unescaped, '"');
+            } break;
+            case L'\'': {
+                bc_str_push_cch_unchecked(&unescaped, '\'');
+            } break;
+            case L'r': {
+                bc_str_push_cch_unchecked(&unescaped, '\r');
+            } break;
+            case L'n': {
+                bc_str_push_cch_unchecked(&unescaped, '\n');
+            } break;
+            case L't': {
+                bc_str_push_cch_unchecked(&unescaped, '\t');
+            } break;
+            case L'b': {
+                bc_str_push_cch_unchecked(&unescaped, '\b');
+            } break;
+            case L'v': {
+                bc_str_push_cch_unchecked(&unescaped, '\v');
+            } break;
+            case L'f': {
+                bc_str_push_cch_unchecked(&unescaped, '\f');
+            } break;
+            case L'0': {
+                bc_str_push_cch_unchecked(&unescaped, '\0');
+            } break;
+            default: {
+                err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE;
+                err->val.invalid_escape_sequence = begin_pos;
+                return false;
+            }
+            }
+        } else {
+            bc_str_push_ch_unchecked(&unescaped, c);
+        }
+    }
+
+    BC_ASSERT(res != BC_STRV_ITER_ERR);
+
+    *output = bc_strv_from_str(unescaped);
+    return true;
+}
+
 struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e) {
     return (struct bc_lex_loc) {
         .s = s,
@@ -14,12 +90,15 @@ struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e) {
 }
 
 struct bc_lex bc_lex_new(struct bc_strv src) {
-    return (struct bc_lex) { .src = src,
+    return (struct bc_lex) {
+        .escaped_strings_arena = bc_mem_arena_new(1024 * 8),
+        .src = src,
         .src_ptr_prev = NULL,
         .pos = {
             .l = 1,
             .c = 1,
-        }, .c = 0,
+        },
+        .c = 0,
         .pos_prev = {
             .l = 1,
             .c = 1,
@@ -35,6 +114,10 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
             },
         }
     };
+}
+
+void bc_lex_free(struct bc_lex lex) {
+    bc_mem_arena_free(lex.escaped_strings_arena);
 }
 
 static enum bc_lex_res _nextc(struct bc_lex* lex) {
@@ -115,9 +198,15 @@ enum bc_lex_res bc_lex_next(
                 _NEXTC();
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin + 1, lex->src_ptr_prev - 1);
+                struct bc_strv escaped_data = { 0 };
+                if (!_unescape(data, &escaped_data, spos,
+                        &lex->escaped_strings_arena, &lex->err)) {
+                    lex->err.pos = spos;
+                    return BC_LEX_ERR;
+                }
 
                 tok->kind = BC_TOK_LIT_STRING;
-                tok->val.string = data;
+                tok->val.string = escaped_data;
                 *loc = bc_lex_loc_new(spos, lex->pos_prev);
 
                 return BC_LEX_OK;
@@ -153,9 +242,25 @@ enum bc_lex_res bc_lex_next(
                 _NEXTC();
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin + 1, lex->src_ptr_prev - 1);
+                if (data.len == 0) {
+                    lex->err.kind = BC_LEX_ERR_EMPTY_CHARACTER;
+                    lex->err.pos = spos;
+                    return BC_LEX_ERR;
+                }
+                struct bc_strv escaped_data = { 0 };
+                if (!_unescape(data, &escaped_data, spos,
+                        &lex->escaped_strings_arena, &lex->err)) {
+                    lex->err.pos = spos;
+                    return BC_LEX_ERR;
+                }
+                if (escaped_data.len > 1) {
+                    lex->err.kind = BC_LEX_ERR_MULTICHARACTER;
+                    lex->err.pos = spos;
+                    return BC_LEX_ERR;
+                }
 
                 tok->kind = BC_TOK_LIT_CHARACTER;
-                tok->val.character = data;
+                tok->val.character = escaped_data;
                 *loc = bc_lex_loc_new(spos, lex->pos_prev);
 
                 return BC_LEX_OK;
