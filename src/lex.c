@@ -6,7 +6,7 @@
 #include "utf8.h"
 #include "assert.h"
 
-bool _parse_hex_digits(const int32_t* digits, size_t len, int32_t* codepoint) {
+static bool _parse_hex_digits(const int32_t* digits, size_t len, int32_t* codepoint) {
     int32_t result = 0;
     for (size_t i = 0; i < len; ++i) {
         int32_t c = digits[i];
@@ -28,7 +28,7 @@ bool _parse_hex_digits(const int32_t* digits, size_t len, int32_t* codepoint) {
     return true;
 }
 
-bool _unescape(struct bc_strv input, struct bc_strv* output,
+static bool _unescape(struct bc_strv input, struct bc_strv* output,
     struct bc_lex_pos begin_pos, struct bc_mem_arena* arena,
     struct bc_lex_err* err) {
 #define _ITERTRYNEXT() \
