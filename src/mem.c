@@ -66,12 +66,10 @@ void* bc_mem_arena_calloc(struct bc_mem_arena* arena, size_t n, size_t size) {
 
 void bc_mem_arena_free(struct bc_mem_arena arena) {
     struct bc_mem_arena_block* curr = arena.first;
-    while (curr->next != NULL) {
+    while (curr != NULL) {
         BC_FREE(curr->data);
         struct bc_mem_arena_block* next = curr->next;
         BC_FREE(curr);
         curr = next;
     }
-    BC_FREE(curr->data);
-    BC_FREE(curr);
 }
