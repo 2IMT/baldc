@@ -265,7 +265,7 @@ enum bc_lex_res bc_lex_next(
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
-                    if (!iswprint(lex->c)) {
+                    if (!iswprint(lex->c) && !iswspace(lex->c)) {
                         lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
                         lex->err.pos = lex->pos_prev;
                         return BC_LEX_ERR;
@@ -314,7 +314,7 @@ enum bc_lex_res bc_lex_next(
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
-                    if (!iswprint(lex->c)) {
+                    if (!iswprint(lex->c) && !iswspace(lex->c)) {
                         lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
                         lex->err.pos = lex->pos_prev;
                         return BC_LEX_ERR;
@@ -530,7 +530,7 @@ enum bc_lex_res bc_lex_next(
                 return BC_LEX_OK;
             }
 
-            if (iswprint(lex->c)) {
+            if (iswprint(lex->c) || iswspace(lex->c)) {
                 lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
                 lex->err.val.unexpected_character = lex->c;
             } else {
