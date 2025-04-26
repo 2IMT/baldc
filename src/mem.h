@@ -10,4 +10,27 @@
 
 void bc_mem_check(void* ptr);
 
+struct bc_mem_arena_block {
+    void* data;
+    struct bc_mem_arena_block* next;
+    size_t size;
+    size_t used;
+};
+
+struct bc_mem_arena {
+    struct bc_mem_arena_block* first;
+    struct bc_mem_arena_block* curr;
+    size_t block_size;
+};
+
+struct bc_mem_arena_block bc_mem_arena_block_new(size_t block_size);
+
+struct bc_mem_arena bc_mem_arena_new(size_t block_size);
+
+void* bc_mem_arena_alloc(struct bc_mem_arena* arena, size_t size);
+
+void* bc_mem_arena_calloc(struct bc_mem_arena* arena, size_t n, size_t size);
+
+void bc_mem_arena_free(struct bc_mem_arena arena);
+
 #endif
