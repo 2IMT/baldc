@@ -6,10 +6,32 @@
 #include "utf8.h"
 #include "assert.h"
 
+bool _parse_hex_digits(const int32_t* digits, size_t len, int32_t* codepoint) {
+    int32_t result = 0;
+    for (size_t i = 0; i < len; ++i) {
+        int32_t c = digits[i];
+        int value = 0;
+
+        if (c >= L'0' && c <= L'9') {
+            value = c - L'0';
+        } else if (c >= L'a' && c <= L'f') {
+            value = 10 + (c - L'a');
+        } else if (c >= L'A' && c <= L'F') {
+            value = 10 + (c - L'A');
+        } else {
+            return false;
+        }
+
+        result = (result << 4) | value;
+    }
+    *codepoint = result;
+    return true;
+}
+
 bool _unescape(struct bc_strv input, struct bc_strv* output,
     struct bc_lex_pos begin_pos, struct bc_mem_arena* arena,
     struct bc_lex_err* err) {
-#define _ITERNEXT() \
+#define _ITERTRYNEXT() \
     { \
         enum bc_strv_iter_res res = bc_strv_iter_next(&input_iter, &c); \
         if (res != BC_STRV_ITER_OK) { \
@@ -17,6 +39,7 @@ bool _unescape(struct bc_strv input, struct bc_strv* output,
         } \
         err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE; \
         err->val.invalid_escape_sequence = begin_pos; \
+        begin_pos.c++; \
     }
 
     struct bc_str unescaped = {
@@ -31,8 +54,7 @@ bool _unescape(struct bc_strv input, struct bc_strv* output,
     while ((res = bc_strv_iter_next(&input_iter, &c)) == BC_STRV_ITER_OK) {
         begin_pos.c++;
         if (c == L'\\') {
-            _ITERNEXT();
-            begin_pos.c++;
+            _ITERTRYNEXT();
 
             switch (c) {
             case L'\\': {
@@ -64,6 +86,46 @@ bool _unescape(struct bc_strv input, struct bc_strv* output,
             } break;
             case L'0': {
                 bc_str_push_cch_unchecked(&unescaped, '\0');
+            } break;
+            case L'x':
+            case L'u':
+            case L'U': {
+                int32_t digits[8] = { 0 };
+                size_t len = 0;
+                switch (c) {
+                case L'x':
+                    len = 2;
+                    for (size_t i = 0; i < 2; i++) {
+                        _ITERTRYNEXT();
+                        digits[i] = c;
+                    }
+                    break;
+                case L'u':
+                    len = 4;
+                    for (size_t i = 0; i < 4; i++) {
+                        _ITERTRYNEXT();
+                        digits[i] = c;
+                    }
+                    break;
+                case L'U':
+                    len = 8;
+                    for (size_t i = 0; i < 8; i++) {
+                        _ITERTRYNEXT();
+                        digits[i] = c;
+                    }
+                    break;
+                default:
+                    BC_ASSERT_UNREACHABLE();
+                }
+
+                int32_t codepoint;
+                if (!_parse_hex_digits(digits, len, &codepoint)) {
+                    err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE;
+                    err->val.invalid_escape_sequence = begin_pos;
+                    return false;
+                }
+
+                bc_str_push_ch_unchecked(&unescaped, codepoint);
             } break;
             default: {
                 err->kind = BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE;
