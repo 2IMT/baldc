@@ -77,6 +77,7 @@ enum bc_lex_err_kind {
     BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE,
     BC_LEX_ERR_MULTICHARACTER,
     BC_LEX_ERR_EMPTY_CHARACTER,
+    BC_LEX_ERR_NON_PRINTABLE_CHARACTER,
 };
 
 union bc_lex_err_val {

@@ -47,6 +47,9 @@ static void _print_err(struct bc_lex_err err, const char* src) {
     case BC_LEX_ERR_EMPTY_CHARACTER: {
         fprintf(stderr, "character literal is empty\n");
     } break;
+    case BC_LEX_ERR_NON_PRINTABLE_CHARACTER: {
+        fprintf(stderr, "non-printable character encountered\n");
+    } break;
     }
 }
 

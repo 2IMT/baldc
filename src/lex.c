@@ -236,6 +236,11 @@ enum bc_lex_res bc_lex_next(
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
+                    if (!iswprint(lex->c)) {
+                        lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
+                        lex->err.pos = lex->pos_prev;
+                        return BC_LEX_ERR;
+                    }
                     if (lex->eof) {
                         break;
                     }
@@ -280,6 +285,11 @@ enum bc_lex_res bc_lex_next(
                 bool escaped = false;
                 bool closed = false;
                 while (true) {
+                    if (!iswprint(lex->c)) {
+                        lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
+                        lex->err.pos = lex->pos_prev;
+                        return BC_LEX_ERR;
+                    }
                     if (lex->eof) {
                         break;
                     }
@@ -510,8 +520,12 @@ enum bc_lex_res bc_lex_next(
             }
             }
 
-            lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
-            lex->err.val.unexpected_character = lex->c;
+            if (iswprint(lex->c)) {
+                lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
+                lex->err.val.unexpected_character = lex->c;
+            } else {
+                lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
+            }
             lex->err.pos = lex->pos_prev;
             return BC_LEX_ERR;
         } else {
