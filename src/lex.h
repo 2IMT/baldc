@@ -13,9 +13,22 @@ enum bc_tok_kind {
     BC_TOK_LIT_STRING,
     BC_TOK_LIT_CHARACTER,
     BC_TOK_LIT_INTEGER,
+    BC_TOK_LIT_BYTE,
     BC_TOK_LIT_FLOATING,
     BC_TOK_LIT_BOOLEAN,
+    BC_TOK_KW_STRING,
+    BC_TOK_KW_CHAR,
+    BC_TOK_KW_INT,
+    BC_TOK_KW_BYTE,
+    BC_TOK_KW_FLOAT,
+    BC_TOK_KW_BOOL,
     BC_TOK_KW_IMPORT,
+    BC_TOK_KW_EXPORT,
+    BC_TOK_KW_AS,
+    BC_TOK_KW_TRY_AS,
+    BC_TOK_KW_TRY,
+    BC_TOK_KW_CATCH,
+    BC_TOK_KW_DEFER,
     BC_TOK_KW_STRUCT,
     BC_TOK_KW_ENUM,
     BC_TOK_KW_FUNC,
@@ -48,6 +61,7 @@ union bc_tok_val {
     struct bc_strv string;
     struct bc_strv character;
     struct bc_strv integer;
+    struct bc_strv byte;
     struct bc_strv floating;
     bool boolean;
 };

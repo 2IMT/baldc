@@ -84,6 +84,10 @@ static void _print_tok(struct bc_tok tok) {
         n = "literal";
         v = tok.val.integer;
         break;
+    case BC_TOK_LIT_BYTE:
+        n = "literal";
+        v = tok.val.byte;
+        break;
     case BC_TOK_LIT_FLOATING:
         n = "literal";
         v = tok.val.floating;
@@ -96,9 +100,57 @@ static void _print_tok(struct bc_tok tok) {
             v = BC_STRV_FROM_LIT("false");
         }
         break;
+    case BC_TOK_KW_STRING:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("string");
+        break;
+    case BC_TOK_KW_CHAR:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("char");
+        break;
+    case BC_TOK_KW_INT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("int");
+        break;
+    case BC_TOK_KW_BYTE:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("byte");
+        break;
+    case BC_TOK_KW_FLOAT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("float");
+        break;
+    case BC_TOK_KW_BOOL:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("bool");
+        break;
     case BC_TOK_KW_IMPORT:
         n = "keyword";
         v = BC_STRV_FROM_LIT("import");
+        break;
+    case BC_TOK_KW_EXPORT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("export");
+        break;
+    case BC_TOK_KW_AS:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("as");
+        break;
+    case BC_TOK_KW_TRY_AS:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("try_as");
+        break;
+    case BC_TOK_KW_TRY:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("try");
+        break;
+    case BC_TOK_KW_CATCH:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("catch");
+        break;
+    case BC_TOK_KW_DEFER:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("defer");
         break;
     case BC_TOK_KW_STRUCT:
         n = "keyword";
@@ -196,7 +248,7 @@ static void _print_tok(struct bc_tok tok) {
         n = "sym";
         v = BC_STRV_FROM_LIT("^");
         break;
-    default:
+    case BC_TOK_COUNT:
         n = "[invalid]";
         v = BC_STRV_FROM_LIT("[invalid]");
     }

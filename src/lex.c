@@ -530,8 +530,32 @@ enum bc_lex_res bc_lex_next(
                 struct bc_strv data =
                     bc_strv_from_range(tok_begin, lex->src_ptr_prev);
 
-                if (BC_STRV_EQ_LIT(data, "import")) {
+                if (BC_STRV_EQ_LIT(data, "string")) {
+                    tok->kind = BC_TOK_KW_STRING;
+                } else if (BC_STRV_EQ_LIT(data, "char")) {
+                    tok->kind = BC_TOK_KW_CHAR;
+                } else if (BC_STRV_EQ_LIT(data, "int")) {
+                    tok->kind = BC_TOK_KW_INT;
+                } else if (BC_STRV_EQ_LIT(data, "byte")) {
+                    tok->kind = BC_TOK_KW_BYTE;
+                } else if (BC_STRV_EQ_LIT(data, "float")) {
+                    tok->kind = BC_TOK_KW_FLOAT;
+                } else if (BC_STRV_EQ_LIT(data, "bool")) {
+                    tok->kind = BC_TOK_KW_BOOL;
+                } else if (BC_STRV_EQ_LIT(data, "import")) {
                     tok->kind = BC_TOK_KW_IMPORT;
+                } else if (BC_STRV_EQ_LIT(data, "export")) {
+                    tok->kind = BC_TOK_KW_EXPORT;
+                } else if (BC_STRV_EQ_LIT(data, "as")) {
+                    tok->kind = BC_TOK_KW_AS;
+                } else if (BC_STRV_EQ_LIT(data, "try_as")) {
+                    tok->kind = BC_TOK_KW_TRY_AS;
+                } else if (BC_STRV_EQ_LIT(data, "try")) {
+                    tok->kind = BC_TOK_KW_TRY;
+                } else if (BC_STRV_EQ_LIT(data, "catch")) {
+                    tok->kind = BC_TOK_KW_CATCH;
+                } else if (BC_STRV_EQ_LIT(data, "defer")) {
+                    tok->kind = BC_TOK_KW_DEFER;
                 } else if (BC_STRV_EQ_LIT(data, "struct")) {
                     tok->kind = BC_TOK_KW_STRUCT;
                 } else if (BC_STRV_EQ_LIT(data, "enum")) {
