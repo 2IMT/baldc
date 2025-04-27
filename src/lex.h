@@ -118,6 +118,8 @@ struct bc_lex {
     const char* src_ptr_prev;
     struct bc_lex_pos pos;
     struct bc_lex_pos pos_prev;
+    const char* tok_begin;
+    struct bc_lex_pos spos;
     int32_t c;
     bool init;
     bool eof;
