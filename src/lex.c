@@ -198,7 +198,7 @@ struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e) {
 
 struct bc_lex bc_lex_new(struct bc_strv src) {
     return (struct bc_lex) {
-        .escaped_strings_arena = bc_mem_arena_new(1024 * 8),
+        .escaped_strings_arena = bc_mem_arena_new(1024 * 4),
         .src = src,
         .src_ptr_prev = NULL,
         .pos = {
