@@ -127,6 +127,8 @@ TEST_BEGIN(test_arena_calloc_aligned) {
         TEST_ASSERT(ptr2[i] == 0);
     }
 
+    bc_mem_arena_free(arena);
+
     TEST_END;
 }
 
