@@ -214,7 +214,7 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
         .eof = false,
         .err = {
             .kind = 0,
-            .val = { 0 },
+            .val = { { 0 } },
             .pos = {
                 .l = 0,
                 .c = 0
