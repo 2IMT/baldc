@@ -649,6 +649,17 @@ enum bc_lex_res bc_lex_next(
                     break;
                 case L'/':
                     kind = BC_TOK_SLASH;
+                    _NEXTC();
+                    if (lex->c == L'/') {
+                        while (!lex->eof && lex->c != L'\n') {
+                            _NEXTC();
+                        }
+                        continue;
+                    } else {
+                        tok->kind = kind;
+                        *loc = bc_lex_loc_new(spos, lex->pos_prev);
+                        return BC_LEX_OK;
+                    }
                     break;
                 case L'&':
                     kind = BC_TOK_AMP;
