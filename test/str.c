@@ -44,6 +44,24 @@ TEST_BEGIN(test_strv_from_str) {
     TEST_END;
 }
 
+TEST_BEGIN(test_strv_len) {
+
+#define _CASE(literal, length) \
+    TEST_ASSERT(bc_strv_len(bc_strv_from_cstr(literal), &len) == true && \
+                len == length)
+
+    size_t len = 0;
+
+    _CASE("", 0);
+    _CASE("п898HF", 6);
+    _CASE("Привет мир!", 11);
+    _CASE("Hello World!", 12);
+
+    TEST_END;
+
+#undef _CASE
+}
+
 TEST_BEGIN(test_strv_eq) {
     struct bc_strv strv1 = bc_strv_from_cstr("Hello World!");
     struct bc_strv strv2 = bc_strv_from_cstr("Goodbye World!");
@@ -132,6 +150,29 @@ TEST_BEGIN(test_str_from_strv) {
     bc_str_free(str);
 
     TEST_END;
+}
+
+TEST_BEGIN(test_str_len) {
+
+#define _CASE(literal, length) \
+    { \
+        str = bc_str_from_cstr(literal); \
+        TEST_ASSERT(bc_str_len(str, &len) == true && \
+                    len == length); \
+        bc_str_free(str); \
+    }
+
+    struct bc_str str;
+    size_t len = 0;
+
+    _CASE("", 0);
+    _CASE("п898HF", 6);
+    _CASE("Привет мир!", 11);
+    _CASE("Hello World!", 12);
+
+    TEST_END;
+
+#undef _CASE
 }
 
 TEST_BEGIN(test_str_reserve) {
@@ -401,9 +442,10 @@ TEST_BEGIN(test_str_push_strv) {
 }
 
 TESTS(test_strv_from_cstr, test_strv_from_cstrn, test_strv_from_range,
-    test_strv_from_str, test_strv_eq, test_strv_eq_str, test_strv_eq_cstr,
-    test_strv_eq_cstrn, test_str_from_cstr, test_str_from_cstrn,
-    test_str_from_range, test_str_reserve, test_str_clone, test_str_from_strv,
-    test_str_eq, test_str_eq_strv, test_str_eq_cstr, test_str_eq_cstrn,
-    test_str_push_cstr, test_str_push_cstrn, test_str_push_ch,
-    test_str_push_cch, test_str_push_strv)
+    test_strv_from_str, test_strv_len, test_strv_eq, test_strv_eq_str,
+    test_strv_eq_cstr, test_strv_eq_cstrn, test_str_from_cstr,
+    test_str_from_cstrn, test_str_from_range, test_str_reserve, test_str_clone,
+    test_str_from_strv, test_str_len, test_str_eq, test_str_eq_strv,
+    test_str_eq_cstr, test_str_eq_cstrn, test_str_push_cstr,
+    test_str_push_cstrn, test_str_push_ch, test_str_push_cch,
+    test_str_push_strv)

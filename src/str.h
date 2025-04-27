@@ -44,6 +44,8 @@ struct bc_strv bc_strv_from_range(const char* begin, const char* end);
 
 struct bc_strv bc_strv_from_str(struct bc_str v);
 
+bool bc_strv_len(struct bc_strv v, size_t* len);
+
 bool bc_strv_eq(struct bc_strv l, struct bc_strv r);
 
 bool bc_strv_eq_str(struct bc_strv l, struct bc_str r);
@@ -66,6 +68,8 @@ struct bc_str bc_str_from_range(const char* begin, const char* end);
 #define BC_STR_FROM_LIT(literal) bc_str_from_cstrn(literal, sizeof(literal) - 1)
 
 struct bc_str bc_str_from_strv(struct bc_strv v);
+
+bool bc_str_len(struct bc_str v, size_t* len);
 
 void bc_str_reserve(struct bc_str* v, size_t cap);
 

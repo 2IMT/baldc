@@ -37,6 +37,26 @@ struct bc_strv bc_strv_from_str(struct bc_str v) {
     };
 }
 
+bool bc_strv_len(struct bc_strv v, size_t* len) {
+    size_t pos = 0;
+    size_t count = 0;
+    while (true) {
+        size_t remaining = v.len - pos;
+        if (remaining == 0) {
+            break;
+        }
+        int32_t codepoint = 0;
+        int adv = bc_utf8_decode(v.data + pos, remaining, &codepoint);
+        if (adv == -1) {
+            return false;
+        }
+        pos += adv;
+        count++;
+    }
+    *len = count;
+    return true;
+}
+
 bool bc_strv_eq(struct bc_strv l, struct bc_strv r) {
     if (l.len != r.len) {
         return false;
@@ -93,6 +113,26 @@ struct bc_str bc_str_from_range(const char* begin, const char* end) {
 
 struct bc_str bc_str_from_strv(struct bc_strv v) {
     return bc_str_from_cstrn(v.data, v.len);
+}
+
+bool bc_str_len(struct bc_str v, size_t* len) {
+    size_t pos = 0;
+    size_t count = 0;
+    while (true) {
+        size_t remaining = v.len - pos;
+        if (remaining == 0) {
+            break;
+        }
+        int32_t codepoint = 0;
+        int adv = bc_utf8_decode(v.data + pos, remaining, &codepoint);
+        if (adv == -1) {
+            return false;
+        }
+        pos += adv;
+        count++;
+    }
+    *len = count;
+    return true;
 }
 
 void bc_str_reserve(struct bc_str* v, size_t cap) {
