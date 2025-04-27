@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "assert.h"
+
+#define _ALIGN_UP(p, align) (((p) + (align) - 1) & ~((align) - 1))
+#define _IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
+
 static struct bc_mem_arena_block* _block_alloc(void) {
     struct bc_mem_arena_block* block =
         BC_MALLOC(sizeof(struct bc_mem_arena_block));
@@ -41,28 +46,41 @@ struct bc_mem_arena bc_mem_arena_new(size_t block_size) {
 }
 
 void* bc_mem_arena_alloc(struct bc_mem_arena* arena, size_t size) {
-    size_t remaining = arena->block_size - arena->curr->used;
-    if (remaining >= size) {
-        void* ptr = (char*)arena->curr->data + arena->curr->used;
-        arena->curr->used += size;
-        return ptr;
-    } else {
+    return bc_mem_arena_alloc_aligned(arena, size, 1);
+}
+
+void* bc_mem_arena_alloc_aligned(
+    struct bc_mem_arena* arena, size_t size, size_t alignment) {
+    BC_ASSERT(alignment != 0);
+    BC_ASSERT(_IS_POWER_OF_TWO(alignment));
+    size_t used = _ALIGN_UP(arena->curr->used, alignment);
+    if (used > arena->block_size || (arena->block_size - used) < size) {
         struct bc_mem_arena_block* new_block = _block_alloc();
         size_t new_block_size = arena->block_size;
-        while (new_block_size < size) {
+        while (new_block_size < size + alignment - 1) {
             new_block_size *= 2;
         }
         *new_block = bc_mem_arena_block_new(new_block_size);
         void* ptr = new_block->data;
-        new_block->used += size;
+        new_block->used = size;
         arena->curr->next = new_block;
         arena->curr = new_block;
         return ptr;
     }
+    void* ptr = (char*)arena->curr->data + used;
+    arena->curr->used = used + size;
+    return ptr;
 }
 
 void* bc_mem_arena_calloc(struct bc_mem_arena* arena, size_t n, size_t size) {
     void* ptr = bc_mem_arena_alloc(arena, n * size);
+    memset(ptr, 0, n * size);
+    return ptr;
+}
+
+void* bc_mem_arena_calloc_aligned(
+    struct bc_mem_arena* arena, size_t n, size_t size, size_t alignment) {
+    void* ptr = bc_mem_arena_alloc_aligned(arena, n * size, alignment);
     memset(ptr, 0, n * size);
     return ptr;
 }

@@ -29,7 +29,19 @@ struct bc_mem_arena bc_mem_arena_new(size_t block_size);
 
 void* bc_mem_arena_alloc(struct bc_mem_arena* arena, size_t size);
 
+void* bc_mem_arena_alloc_aligned(
+    struct bc_mem_arena* arena, size_t size, size_t alignment);
+
+#define BC_MEM_ARENA_ALLOC_TYPE(arena, ty) \
+    ((ty*)bc_mem_arena_alloc_aligned((arena), sizeof(ty), _Alignof(ty)))
+
 void* bc_mem_arena_calloc(struct bc_mem_arena* arena, size_t n, size_t size);
+
+void* bc_mem_arena_calloc_aligned(
+    struct bc_mem_arena* arena, size_t n, size_t size, size_t alignment);
+
+#define BC_MEM_ARENA_CALLOC_TYPE(arena, ty, n) \
+    ((ty*)bc_mem_arena_calloc_aligned((arena), n, sizeof(ty), _Alignof(ty)))
 
 void bc_mem_arena_free(struct bc_mem_arena arena);
 
