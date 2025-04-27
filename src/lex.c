@@ -399,6 +399,107 @@ static enum bc_lex_res _lex_string(
     return BC_LEX_EMPTY;
 }
 
+enum bc_lex_res _lex_num(
+    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
+    if (iswdigit(lex->c)) {
+        bool has_dot = false;
+        bool has_digit_after_dot = false;
+        bool has_digit_after_prefix = false;
+        bool has_byte_postfix = false;
+        int base = 10;
+
+        if (lex->c == L'0') {
+            _NEXTC();
+            switch (lex->c) {
+            case L'b':
+            case L'B':
+                base = 2;
+                break;
+            case L'o':
+            case L'O':
+                base = 8;
+                break;
+            case L'x':
+            case L'X':
+                base = 16;
+                break;
+            case L'.':
+                has_dot = true;
+                break;
+            default:
+                lex->err.val.invalid_integer_prefix = lex->c;
+                _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
+            }
+        }
+
+        _NEXTC();
+        while (!lex->eof) {
+            if (lex->c == L'.' && base == 10) {
+                if (has_dot) {
+                    break;
+                }
+                has_dot = true;
+            } else if (base == 2 && _is_bin_digit(lex->c)) {
+                has_digit_after_prefix = true;
+            } else if (base == 8 && _is_oct_digit(lex->c)) {
+                has_digit_after_prefix = true;
+            } else if (base == 10 && iswdigit(lex->c)) {
+                if (has_dot) {
+                    has_digit_after_dot = true;
+                }
+            } else if (base == 16 && _is_hex_digit(lex->c)) {
+                has_digit_after_prefix = true;
+            } else if ((_is_sep(lex->c) || iswspace(lex->c))) {
+                if (base == 10) {
+                    if (has_dot && !has_digit_after_dot) {
+                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_DOT);
+                    }
+                } else {
+                    if (!has_digit_after_prefix) {
+                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                    }
+                }
+                break;
+            } else if (lex->c == L'y' || lex->c == L'Y') {
+                if (has_dot) {
+                    _ERROR(BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING);
+                } else {
+                    if (base != 10 && !has_digit_after_prefix) {
+                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                    }
+                }
+                has_byte_postfix = true;
+                _NEXTC();
+                break;
+            } else if (lex->c == L'_') {
+                // OK
+            } else {
+                lex->err.val.unexpected_character_in_number = lex->c;
+                _ERROR(BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER);
+            }
+            _NEXTC();
+        }
+
+        struct bc_strv data =
+            bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
+
+        if (has_dot) {
+            tok->kind = BC_TOK_LIT_FLOATING;
+            tok->val.floating = data;
+        } else if (has_byte_postfix) {
+            tok->kind = BC_TOK_LIT_BYTE;
+            tok->val.byte = data;
+        } else {
+            tok->kind = BC_TOK_LIT_INTEGER;
+            tok->val.integer = data;
+        }
+        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
+
+        return BC_LEX_OK;
+    }
+    return BC_LEX_EMPTY;
+}
+
 enum bc_lex_res bc_lex_next(
     struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
     if (lex->init) {
@@ -425,101 +526,12 @@ enum bc_lex_res bc_lex_next(
             }
 
             // Floating, integer, and byte
-            if (iswdigit(lex->c)) {
-                bool has_dot = false;
-                bool has_digit_after_dot = false;
-                bool has_digit_after_prefix = false;
-                bool has_byte_postfix = false;
-                int base = 10;
-
-                if (lex->c == L'0') {
-                    _NEXTC();
-                    switch (lex->c) {
-                    case L'b':
-                    case L'B':
-                        base = 2;
-                        break;
-                    case L'o':
-                    case L'O':
-                        base = 8;
-                        break;
-                    case L'x':
-                    case L'X':
-                        base = 16;
-                        break;
-                    case L'.':
-                        has_dot = true;
-                        break;
-                    default:
-                        lex->err.val.invalid_integer_prefix = lex->c;
-                        _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
-                    }
-                }
-
-                _NEXTC();
-                while (!lex->eof) {
-                    if (lex->c == L'.' && base == 10) {
-                        if (has_dot) {
-                            break;
-                        }
-                        has_dot = true;
-                    } else if (base == 2 && _is_bin_digit(lex->c)) {
-                        has_digit_after_prefix = true;
-                    } else if (base == 8 && _is_oct_digit(lex->c)) {
-                        has_digit_after_prefix = true;
-                    } else if (base == 10 && iswdigit(lex->c)) {
-                        if (has_dot) {
-                            has_digit_after_dot = true;
-                        }
-                    } else if (base == 16 && _is_hex_digit(lex->c)) {
-                        has_digit_after_prefix = true;
-                    } else if ((_is_sep(lex->c) || iswspace(lex->c))) {
-                        if (base == 10) {
-                            if (has_dot && !has_digit_after_dot) {
-                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_DOT);
-                            }
-                        } else {
-                            if (!has_digit_after_prefix) {
-                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
-                            }
-                        }
-                        break;
-                    } else if (lex->c == L'y' || lex->c == L'Y') {
-                        if (has_dot) {
-                            _ERROR(BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING);
-                        } else {
-                            if (base != 10 && !has_digit_after_prefix) {
-                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
-                            }
-                        }
-                        has_byte_postfix = true;
-                        _NEXTC();
-                        break;
-                    } else if (lex->c == L'_') {
-                        // OK
-                    } else {
-                        lex->err.val.unexpected_character_in_number = lex->c;
-                        _ERROR(BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER);
-                    }
-                    _NEXTC();
-                }
-
-                struct bc_strv data =
-                    bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
-
-                if (has_dot) {
-                    tok->kind = BC_TOK_LIT_FLOATING;
-                    tok->val.floating = data;
-                } else if (has_byte_postfix) {
-                    tok->kind = BC_TOK_LIT_BYTE;
-                    tok->val.byte = data;
-                } else {
-                    tok->kind = BC_TOK_LIT_INTEGER;
-                    tok->val.integer = data;
-                }
-                *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
-
+            enum bc_lex_res num_res = _lex_num(lex, tok, loc);
+            if (num_res == BC_LEX_OK) {
                 return BC_LEX_OK;
+            }
+            if (num_res == BC_LEX_ERR) {
+                return BC_LEX_ERR;
             }
 
             // Ident, keywords, and boolean
@@ -633,6 +645,18 @@ enum bc_lex_res bc_lex_next(
                     break;
                 case L'-':
                     kind = BC_TOK_DASH;
+                    _NEXTC();
+                    // Negative floating, integer, and byte
+                    num_res = _lex_num(lex, tok, loc);
+                    if (num_res == BC_LEX_OK) {
+                        return BC_LEX_OK;
+                    }
+                    if (num_res == BC_LEX_ERR) {
+                        return BC_LEX_ERR;
+                    }
+                    tok->kind = kind;
+                    *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
+                    return BC_LEX_OK;
                     break;
                 case L'*':
                     kind = BC_TOK_STAR;
