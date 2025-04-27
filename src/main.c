@@ -57,7 +57,10 @@ static void _print_err(struct bc_lex_err err, const char* src) {
     } break;
     case BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX: {
         fprintf(stderr, "no digit after prefix in integer literal\n");
-    }
+    } break;
+    case BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING: {
+        fprintf(stderr, "byte postfix in floating point literal\n");
+    } break;
     }
 }
 
@@ -71,29 +74,29 @@ static void _print_tok(struct bc_tok tok) {
         v = tok.val.ident;
         break;
     case BC_TOK_LIT_STRING:
-        n = "literal";
+        n = "lit s";
         v = tok.val.string;
         delim = '"';
         break;
     case BC_TOK_LIT_CHARACTER:
-        n = "literal";
+        n = "lit c";
         v = tok.val.character;
         delim = '\'';
         break;
     case BC_TOK_LIT_INTEGER:
-        n = "literal";
+        n = "lit i";
         v = tok.val.integer;
         break;
     case BC_TOK_LIT_BYTE:
-        n = "literal";
+        n = "lit bt";
         v = tok.val.byte;
         break;
     case BC_TOK_LIT_FLOATING:
-        n = "literal";
+        n = "lit f";
         v = tok.val.floating;
         break;
     case BC_TOK_LIT_BOOLEAN:
-        n = "literal";
+        n = "lit b";
         if (tok.val.boolean) {
             v = BC_STRV_FROM_LIT("true");
         } else {

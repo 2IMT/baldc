@@ -434,11 +434,12 @@ enum bc_lex_res bc_lex_next(
                 return BC_LEX_OK;
             }
 
-            // Floating and integer
+            // Floating, integer, and byte
             if (iswdigit(lex->c)) {
                 bool has_dot = false;
                 bool has_digit_after_dot = false;
                 bool has_digit_after_prefix = false;
+                bool has_byte_postfix = false;
                 int base = 10;
 
                 if (lex->c == L'0') {
@@ -458,6 +459,7 @@ enum bc_lex_res bc_lex_next(
                         break;
                     case L'.':
                         has_dot = true;
+                        break;
                     default:
                         lex->err.val.invalid_integer_prefix = lex->c;
                         _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
@@ -492,6 +494,17 @@ enum bc_lex_res bc_lex_next(
                             }
                         }
                         break;
+                    } else if (lex->c == L'y' || lex->c == L'Y') {
+                        if (has_dot) {
+                            _ERROR(BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING);
+                        } else {
+                            if (base != 10 && !has_digit_after_prefix) {
+                                _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                            }
+                        }
+                        has_byte_postfix = true;
+                        _NEXTC();
+                        break;
                     } else if (lex->c == L'_') {
                         // OK
                     } else {
@@ -507,6 +520,9 @@ enum bc_lex_res bc_lex_next(
                 if (has_dot) {
                     tok->kind = BC_TOK_LIT_FLOATING;
                     tok->val.floating = data;
+                } else if (has_byte_postfix) {
+                    tok->kind = BC_TOK_LIT_BYTE;
+                    tok->val.byte = data;
                 } else {
                     tok->kind = BC_TOK_LIT_INTEGER;
                     tok->val.integer = data;
