@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 static struct bc_mem_arena_block* _block_alloc(void) {
     struct bc_mem_arena_block* block =
@@ -61,7 +62,9 @@ void* bc_mem_arena_alloc(struct bc_mem_arena* arena, size_t size) {
 }
 
 void* bc_mem_arena_calloc(struct bc_mem_arena* arena, size_t n, size_t size) {
-    return bc_mem_arena_alloc(arena, n * size);
+    void* ptr = bc_mem_arena_alloc(arena, n * size);
+    memset(ptr, 0, n * size);
+    return ptr;
 }
 
 void bc_mem_arena_free(struct bc_mem_arena arena) {
