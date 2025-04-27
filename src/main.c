@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
     if (file == NULL) {
         fprintf(stderr, "error: failed to open file `%s`: %s\n", src,
             strerror(errno));
-        bc_str_free(&file_data);
+        bc_str_free(file_data);
         return 1;
     }
 #define BUFFER_SIZE (1024 * 8)
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
         if (ferror(file)) {
             fprintf(stderr, "error: failed to read file `%s`: %s\n", src,
                 strerror(errno));
-            bc_str_free(&file_data);
+            bc_str_free(file_data);
             return 1;
         }
         bc_str_push_cstrn(&file_data, buffer, bytes_read);
@@ -313,7 +313,7 @@ int main(int argc, char** argv) {
     }
 
     bc_lex_free(lex);
-    bc_str_free(&file_data);
+    bc_str_free(file_data);
 
     return 0;
 }

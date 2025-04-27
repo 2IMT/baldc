@@ -65,7 +65,7 @@ TEST_BEGIN(test_strv_eq_str) {
     TEST_ASSERT(!bc_strv_eq_str(strv, str));
     strv = bc_strv_from_cstr("Hello World");
     TEST_ASSERT(bc_strv_eq_str(strv, str));
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -94,11 +94,11 @@ TEST_BEGIN(test_str_from_cstr) {
     struct bc_str str = bc_str_from_cstr("Hello World!");
     TEST_ASSERT(str.len == 12);
     TEST_ASSERT(memcmp("Hello World!", str.data, 12) == 0);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     str = bc_str_from_cstr("");
     TEST_ASSERT(str.len == 0);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -107,7 +107,7 @@ TEST_BEGIN(test_str_from_cstrn) {
     struct bc_str str = bc_str_from_cstrn("Hello World!", 5);
     TEST_ASSERT(str.len == 5);
     TEST_ASSERT(memcmp("Hello", str.data, 5) == 0);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -118,7 +118,7 @@ TEST_BEGIN(test_str_from_range) {
     struct bc_str str = bc_str_from_range(hello_world, goodbye_world);
     TEST_ASSERT(str.len == 12);
     TEST_ASSERT(memcmp("Hello World!", str.data, 12) == 0);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -129,7 +129,7 @@ TEST_BEGIN(test_str_from_strv) {
     TEST_ASSERT(strv.len == str.len);
     TEST_ASSERT(strv.data != str.data);
     TEST_ASSERT(memcmp(str.data, strv.data, strv.len) == 0);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -140,7 +140,7 @@ TEST_BEGIN(test_str_reserve) {
     TEST_ASSERT(str.data != NULL);
     TEST_ASSERT(str.len == 0);
     TEST_ASSERT(str.cap >= 200);
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -151,8 +151,8 @@ TEST_BEGIN(test_str_clone) {
     TEST_ASSERT(str1.data != str2.data);
     TEST_ASSERT(str1.len == str2.len);
     TEST_ASSERT(str1.cap == str2.cap);
-    bc_str_free(&str1);
-    bc_str_free(&str2);
+    bc_str_free(str1);
+    bc_str_free(str2);
 
     TEST_END;
 }
@@ -171,11 +171,11 @@ TEST_BEGIN(test_str_eq) {
     TEST_ASSERT(bc_str_eq(str4, str3));
     TEST_ASSERT(bc_str_eq(str1, str5));
     TEST_ASSERT(bc_str_eq(str5, str1));
-    bc_str_free(&str1);
-    bc_str_free(&str2);
-    bc_str_free(&str3);
-    bc_str_free(&str4);
-    bc_str_free(&str5);
+    bc_str_free(str1);
+    bc_str_free(str2);
+    bc_str_free(str3);
+    bc_str_free(str4);
+    bc_str_free(str5);
 
     TEST_END;
 }
@@ -199,11 +199,11 @@ TEST_BEGIN(test_str_eq_strv) {
     TEST_ASSERT(bc_str_eq_strv(str4, strv3));
     TEST_ASSERT(bc_str_eq_strv(str1, strv5));
     TEST_ASSERT(bc_str_eq_strv(str5, strv1));
-    bc_str_free(&str1);
-    bc_str_free(&str2);
-    bc_str_free(&str3);
-    bc_str_free(&str4);
-    bc_str_free(&str5);
+    bc_str_free(str1);
+    bc_str_free(str2);
+    bc_str_free(str3);
+    bc_str_free(str4);
+    bc_str_free(str5);
 
     TEST_END;
 }
@@ -227,11 +227,11 @@ TEST_BEGIN(test_str_eq_cstr) {
     TEST_ASSERT(bc_str_eq_cstr(str4, cstr3));
     TEST_ASSERT(bc_str_eq_cstr(str1, cstr5));
     TEST_ASSERT(bc_str_eq_cstr(str5, cstr1));
-    bc_str_free(&str1);
-    bc_str_free(&str2);
-    bc_str_free(&str3);
-    bc_str_free(&str4);
-    bc_str_free(&str5);
+    bc_str_free(str1);
+    bc_str_free(str2);
+    bc_str_free(str3);
+    bc_str_free(str4);
+    bc_str_free(str5);
 
     TEST_END;
 }
@@ -257,11 +257,11 @@ TEST_BEGIN(test_str_eq_cstrn) {
     TEST_ASSERT(bc_str_eq_cstrn(str5, cstr1, 12));
     TEST_ASSERT(!bc_str_eq_cstrn(str1, cstr5, 10));
     TEST_ASSERT(!bc_str_eq_cstrn(str5, cstr1, 10));
-    bc_str_free(&str1);
-    bc_str_free(&str2);
-    bc_str_free(&str3);
-    bc_str_free(&str4);
-    bc_str_free(&str5);
+    bc_str_free(str1);
+    bc_str_free(str2);
+    bc_str_free(str3);
+    bc_str_free(str4);
+    bc_str_free(str5);
 
     TEST_END;
 }
@@ -288,7 +288,7 @@ TEST_BEGIN(test_str_push_cstr) {
     TEST_ASSERT(str.len == res_len);
     TEST_ASSERT(memcmp(res, str.data, res_len) == 0);
 
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -322,7 +322,7 @@ TEST_BEGIN(test_str_push_cstrn) {
     TEST_ASSERT(str.len == res_len);
     TEST_ASSERT(memcmp(res, str.data, res_len) == 0);
 
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -348,7 +348,7 @@ TEST_BEGIN(test_str_push_ch) {
     TEST_ASSERT(str.len == res_len);
     TEST_ASSERT(memcmp(res, str.data, res_len) == 0);
 
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -368,7 +368,7 @@ TEST_BEGIN(test_str_push_cch) {
     TEST_ASSERT(str.len == res_len);
     TEST_ASSERT(memcmp(res, str.data, res_len) == 0);
 
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }
@@ -395,7 +395,7 @@ TEST_BEGIN(test_str_push_strv) {
     TEST_ASSERT(str.len == res_len);
     TEST_ASSERT(memcmp(res.data, str.data, res_len) == 0);
 
-    bc_str_free(&str);
+    bc_str_free(str);
 
     TEST_END;
 }

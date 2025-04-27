@@ -71,7 +71,7 @@ void bc_str_reserve(struct bc_str* v, size_t cap);
 
 struct bc_str bc_str_clone(struct bc_str v);
 
-void bc_str_free(struct bc_str* v);
+void bc_str_free(struct bc_str v);
 
 bool bc_str_eq(struct bc_str l, struct bc_str r);
 

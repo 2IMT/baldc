@@ -115,11 +115,10 @@ struct bc_str bc_str_clone(struct bc_str v) {
     return res;
 }
 
-void bc_str_free(struct bc_str* v) {
-    if (v->data != NULL) {
-        BC_FREE(v->data);
+void bc_str_free(struct bc_str v) {
+    if (v.data != NULL) {
+        BC_FREE(v.data);
     }
-    *v = bc_str_new();
 }
 
 bool bc_str_eq(struct bc_str l, struct bc_str r) {
