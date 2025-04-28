@@ -29,9 +29,6 @@ static void _print_err(struct bc_lex_err err, const char* src) {
         bc_utf8_encode(err.val.unexpected_character_in_number, data);
         fprintf(stderr, "unexpected character `%s` in number literal\n", data);
     } break;
-    case BC_LEX_ERR_NO_DIGIT_AFTER_DOT: {
-        fprintf(stderr, "no digit after dot in float literal\n");
-    } break;
     case BC_LEX_ERR_UNEXPECTED_CHARACTER: {
         char data[4] = { 0 };
         bc_utf8_encode(err.val.unexpected_character, data);

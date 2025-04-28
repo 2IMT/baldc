@@ -403,7 +403,6 @@ enum bc_lex_res _lex_num(
     struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
     if (iswdigit(lex->c)) {
         bool has_dot = false;
-        bool has_digit_after_dot = false;
         bool has_digit_after_prefix = false;
         bool has_byte_postfix = false;
         int base = 10;
@@ -446,25 +445,24 @@ enum bc_lex_res _lex_num(
                     break;
                 }
                 has_dot = true;
+                struct bc_lex saved_lex = *lex;
+                _NEXTC();
+                if (!iswdigit(lex->c)) {
+                    *lex = saved_lex;
+                    has_dot = false;
+                    break;
+                }
             } else if (base == 2 && _is_bin_digit(lex->c)) {
                 has_digit_after_prefix = true;
             } else if (base == 8 && _is_oct_digit(lex->c)) {
                 has_digit_after_prefix = true;
             } else if (base == 10 && iswdigit(lex->c)) {
-                if (has_dot) {
-                    has_digit_after_dot = true;
-                }
+                // OK
             } else if (base == 16 && _is_hex_digit(lex->c)) {
                 has_digit_after_prefix = true;
             } else if ((_is_sep(lex->c) || iswspace(lex->c))) {
-                if (base == 10) {
-                    if (has_dot && !has_digit_after_dot) {
-                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_DOT);
-                    }
-                } else {
-                    if (!has_digit_after_prefix) {
-                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
-                    }
+                if (base != 10 && !has_digit_after_prefix) {
+                    _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
                 }
                 break;
             } else if (lex->c == L'y' || lex->c == L'Y') {
