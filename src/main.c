@@ -5,61 +5,56 @@
 
 #include "lex.h"
 #include "str.h"
-#include "utf8.h"
+#include "print.h"
 
 static void _print_err(struct bc_lex_err err, const char* src) {
     switch (err.kind) {
     case BC_LEX_ERR_INVALID_UTF8_SEQUENCE: {
-        fprintf(stderr, "invalid UTF-8 sequence\n");
+        bc_eprintf("invalid UTF-8 sequence$n");
 
     } break;
     case BC_LEX_ERR_UNTERMINATED_STRING: {
         struct bc_lex_pos pos = err.val.unterminated_string;
-        fprintf(stderr, "unterminated string literal (starts at %s:%zu:%zu)\n",
-            src, pos.l, pos.c);
+        bc_eprintf("unterminated string literal (starts at $s:$z:$z)$n", src,
+            pos.l, pos.c);
     } break;
     case BC_LEX_ERR_UNTERMINATED_CHARACTER: {
         struct bc_lex_pos pos = err.val.unterminated_character;
-        fprintf(stderr,
-            "unterminated character literal (starts at %s:%zu:%zu)\n", src,
+        bc_eprintf("unterminated character literal (starts at $s:$z:$z)$n", src,
             pos.l, pos.c);
     } break;
     case BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER: {
-        char data[4] = { 0 };
-        bc_utf8_encode(err.val.unexpected_character_in_number, data);
-        fprintf(stderr, "unexpected character `%s` in number literal\n", data);
+        bc_eprintf("unexpected character `$C` in number literal$n",
+            err.val.unexpected_character_in_number);
     } break;
     case BC_LEX_ERR_UNEXPECTED_CHARACTER: {
-        char data[4] = { 0 };
-        bc_utf8_encode(err.val.unexpected_character, data);
-        fprintf(stderr, "unexpected character `%s`\n", data);
+        bc_eprintf("unexpected character `$C`$n", err.val.unexpected_character);
     } break;
     case BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE: {
         struct bc_lex_pos pos = err.val.invalid_escape_sequence;
-        fprintf(stderr, "invalid escape sequence at %zu:%zu\n", pos.l, pos.c);
+        bc_eprintf("invalid escape sequence at $z:$z$n", pos.l, pos.c);
     } break;
     case BC_LEX_ERR_MULTICHARACTER: {
-        fprintf(stderr, "character literal contains more than one character\n");
+        bc_eprintf("character literal contains more than one character$n");
     } break;
     case BC_LEX_ERR_EMPTY_CHARACTER: {
-        fprintf(stderr, "character literal is empty\n");
+        bc_eprintf("character literal is empty$n");
     } break;
     case BC_LEX_ERR_NON_PRINTABLE_CHARACTER: {
-        fprintf(stderr, "non-printable character encountered\n");
+        bc_eprintf("non-printable character encountered$n");
     } break;
     case BC_LEX_ERR_INVALID_INTEGER_PREFIX: {
-        char data[4] = { 0 };
-        bc_utf8_encode(err.val.invalid_integer_prefix, data);
-        fprintf(stderr, "invalid integer prefix `%s`\n", data);
+        bc_eprintf(
+            "invalid integer prefix `$C`$n", err.val.invalid_integer_prefix);
     } break;
     case BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX: {
-        fprintf(stderr, "no digit after prefix in integer literal\n");
+        bc_eprintf("no digit after prefix in integer literal$n");
     } break;
     case BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING: {
-        fprintf(stderr, "byte postfix in floating point literal\n");
+        bc_eprintf("byte postfix in floating point literal$n");
     } break;
     case BC_LEX_ERR_NEGATIVE_BYTE_LITERAL: {
-        fprintf(stderr, "negative byte literal\n");
+        bc_eprintf("negative byte literal$n");
     } break;
     }
 }
@@ -256,7 +251,7 @@ static void _print_tok(struct bc_tok tok) {
         v = BC_STRV_FROM_LIT("[invalid]");
     }
     char delim_str[] = { delim, '\0' };
-    printf("%s\t%s" BC_STRV_FORMAT "%s\n", n, delim_str, BC_STRV_FORMATV(v),
+    bc_printf("$s\t$s" BC_STRV_PRNT "$s$n", n, delim_str, BC_STRV_PRNTV(v),
         delim_str);
 }
 
@@ -264,7 +259,7 @@ int main(int argc, char** argv) {
     setlocale(LC_ALL, "");
 
     if (argc < 2) {
-        fprintf(stderr, "error: no source file provided\n");
+        bc_eprintf("error: no source file provided$n");
         return 1;
     }
     const char* src = argv[1];
@@ -272,8 +267,8 @@ int main(int argc, char** argv) {
     struct bc_str file_data = bc_str_new();
     FILE* file = fopen(src, "r");
     if (file == NULL) {
-        fprintf(stderr, "error: failed to open file `%s`: %s\n", src,
-            strerror(errno));
+        bc_eprintf(
+            "error: failed to open file `$s`: $s$n", src, strerror(errno));
         bc_str_free(file_data);
         return 1;
     }
@@ -282,8 +277,8 @@ int main(int argc, char** argv) {
     while (!feof(file)) {
         size_t bytes_read = fread(buffer, 1, BUFFER_SIZE, file);
         if (ferror(file)) {
-            fprintf(stderr, "error: failed to read file `%s`: %s\n", src,
-                strerror(errno));
+            bc_eprintf(
+                "error: failed to read file `$s`: $s$n", src, strerror(errno));
             bc_str_free(file_data);
             return 1;
         }
@@ -303,11 +298,11 @@ int main(int argc, char** argv) {
         }
         if (res == BC_LEX_ERR) {
             struct bc_lex_pos pos = lex.err.pos;
-            fprintf(stderr, "%s:%zu:%zu: error: ", src, pos.l, pos.c);
+            bc_eprintf("$s:$z:$z: error: ", src, pos.l, pos.c);
             _print_err(lex.err, src);
         } else {
-            printf("%s:%zu:%zu-%zu:%zu:\t", src, loc.s.l, loc.s.c, loc.e.l,
-                loc.e.c);
+            bc_printf(
+                "$s:$z:$z-$z:$z:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
             _print_tok(tok);
         }
     }

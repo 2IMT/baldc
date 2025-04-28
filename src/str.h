@@ -10,8 +10,11 @@ struct bc_strv {
     size_t len;
 };
 
-#define BC_STRV_FORMAT     "%.*s"
-#define BC_STRV_FORMATV(v) (int)((v).len), (v).data
+#define BC_STRV_PRNT     "$S"
+#define BC_STRV_PRNTV(v) (v).data, (v).len
+
+#define BC_STRV_CPRNT     "%.*s"
+#define BC_STRV_CPRNTV(v) (int)((v).len), (v).data
 
 struct bc_str {
     char* data;
@@ -19,8 +22,11 @@ struct bc_str {
     size_t cap;
 };
 
-#define BC_STR_FORMAT     "%.*s"
-#define BC_STR_FORMATV(v) (int)((v).len), (v).data
+#define BC_STR_CPRNT     "%.*s"
+#define BC_STR_CPRNTV(v) (int)((v).len), (v).data
+
+#define BC_STR_PRNT  "$S"
+#define BC_STR_PRNTV (v).data, (v).len
 
 struct bc_strv_iter {
     struct bc_strv str;
