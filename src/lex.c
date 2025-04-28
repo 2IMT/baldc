@@ -1,10 +1,9 @@
 #include "lex.h"
 
-#include <wctype.h>
-
 #include "str.h"
 #include "utf8.h"
 #include "assert.h"
+#include "uprop.h"
 
 #define _NEXTC() \
     { \
@@ -45,7 +44,8 @@ static bool _is_bin_digit(int32_t c) { return c == L'0' || c == L'1'; }
 static bool _is_oct_digit(int32_t c) { return L'0' <= c && c <= L'8'; }
 
 static bool _is_hex_digit(int32_t c) {
-    return iswdigit(c) || (L'a' <= c && c <= L'f') || (L'A' <= c && c <= L'F');
+    return bc_uprop_is_digit(c) || (L'a' <= c && c <= L'f') ||
+           (L'A' <= c && c <= L'F');
 }
 
 static bool _is_sep(int32_t c) {
@@ -285,7 +285,7 @@ static enum bc_lex_res _nextc(struct bc_lex* lex) {
 }
 
 static enum bc_lex_res _recover(struct bc_lex* lex) {
-    while (!iswspace(lex->c) && !_is_sep(lex->c)) {
+    while (!bc_uprop_is_space(lex->c) && !_is_sep(lex->c)) {
         if (_nextc(lex) == BC_LEX_ERR) {
             lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE;
             lex->err.pos = lex->pos_prev;
@@ -327,7 +327,7 @@ static enum bc_lex_res _lex_string(
         bool escaped = false;
         bool closed = false;
         while (true) {
-            if (!iswprint(lex->c) && !iswspace(lex->c)) {
+            if (!bc_uprop_is_print(lex->c)) {
                 lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
                 lex->err.pos = lex->pos_prev;
                 _RECOVER_TO(L'"');
@@ -401,7 +401,7 @@ static enum bc_lex_res _lex_string(
 
 enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
     struct bc_lex_loc* loc, bool negative) {
-    if (iswdigit(lex->c)) {
+    if (bc_uprop_is_digit(lex->c)) {
         bool has_dot = false;
         bool has_digit_after_prefix = false;
         bool has_byte_postfix = false;
@@ -426,7 +426,7 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 has_dot = true;
                 break;
             default:
-                if (iswspace(lex->c) || _is_sep(lex->c)) {
+                if (bc_uprop_is_space(lex->c) || _is_sep(lex->c)) {
                     struct bc_strv data =
                         bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
                     tok->kind = BC_TOK_LIT_INTEGER;
@@ -447,7 +447,7 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 has_dot = true;
                 struct bc_lex saved_lex = *lex;
                 _NEXTC();
-                if (!iswdigit(lex->c)) {
+                if (!bc_uprop_is_digit(lex->c)) {
                     *lex = saved_lex;
                     has_dot = false;
                     break;
@@ -456,11 +456,11 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 has_digit_after_prefix = true;
             } else if (base == 8 && _is_oct_digit(lex->c)) {
                 has_digit_after_prefix = true;
-            } else if (base == 10 && iswdigit(lex->c)) {
+            } else if (base == 10 && bc_uprop_is_digit(lex->c)) {
                 // OK
             } else if (base == 16 && _is_hex_digit(lex->c)) {
                 has_digit_after_prefix = true;
-            } else if ((_is_sep(lex->c) || iswspace(lex->c))) {
+            } else if ((_is_sep(lex->c) || bc_uprop_is_space(lex->c))) {
                 if (base != 10 && !has_digit_after_prefix) {
                     _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
                 }
@@ -516,7 +516,7 @@ enum bc_lex_res bc_lex_next(
     }
     while (true) {
         if (!lex->eof) {
-            if (iswspace(lex->c)) {
+            if (bc_uprop_is_space(lex->c)) {
                 _NEXTC();
                 continue;
             }
@@ -543,10 +543,10 @@ enum bc_lex_res bc_lex_next(
             }
 
             // Ident, keywords, and boolean
-            if (iswalpha(lex->c) || lex->c == L'_') {
+            if (bc_uprop_is_alpha(lex->c) || lex->c == L'_') {
                 _NEXTC();
                 while (!lex->eof) {
-                    if (iswalnum(lex->c) || lex->c == L'_') {
+                    if (bc_uprop_is_alnum(lex->c) || lex->c == L'_') {
                         _NEXTC();
                     } else {
                         break;
@@ -703,7 +703,7 @@ enum bc_lex_res bc_lex_next(
                 return BC_LEX_OK;
             }
 
-            if (iswprint(lex->c) || iswspace(lex->c)) {
+            if (bc_uprop_is_print(lex->c)) {
                 lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
                 lex->err.val.unexpected_character = lex->c;
             } else {
