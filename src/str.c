@@ -217,6 +217,9 @@ void bc_str_push_cstr_unchecked(struct bc_str* v, const char* str) {
 }
 
 void bc_str_push_cstrn_unchecked(struct bc_str* v, const char* str, size_t n) {
+    if (n == 0) {
+        return;
+    }
     memcpy(v->data + v->len, str, n);
     v->len += n;
 }
