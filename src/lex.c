@@ -399,8 +399,8 @@ static enum bc_lex_res _lex_string(
     return BC_LEX_EMPTY;
 }
 
-enum bc_lex_res _lex_num(
-    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc, bool negative) {
+enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
+    struct bc_lex_loc* loc, bool negative) {
     if (iswdigit(lex->c)) {
         bool has_dot = false;
         bool has_digit_after_prefix = false;
