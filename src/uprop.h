@@ -1,5 +1,5 @@
-#ifndef BC_UPROP_H
-#define BC_UPROP_H
+#ifndef BALDC_UPROP_H
+#define BALDC_UPROP_H
 
 #include <stdint.h>
 #include <stdbool.h>
