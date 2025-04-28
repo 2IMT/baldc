@@ -2900,6 +2900,10 @@ bool bc_uprop_is_alpha(int32_t c) {
     return false;
 }
 
+bool bc_uprop_is_alnum(int32_t c) {
+    return bc_uprop_is_alpha(c) || bc_uprop_is_digit(c);
+}
+
 bool bc_uprop_is_upper(int32_t c) {
     switch (c) {
     case 0x0100:
@@ -4725,3 +4729,40 @@ bool bc_uprop_is_lower(int32_t c) {
 }
 
 bool bc_uprop_is_digit(int32_t c) { return 0x30 <= c && c <= 0x39; }
+
+bool bc_uprop_is_print(int32_t c) {
+    if (c < 0 || c > 0x10FFFF) {
+        return false;
+    }
+
+    if (c <= 0x1F || (c >= 0x7F && c <= 0x9F)) {
+        return false;
+    }
+
+    if (c >= 0xD800 && c <= 0xDFFF) {
+        return false;
+    }
+
+    if ((c >= 0xFDD0 && c <= 0xFDEF) || ((c & 0xFFFE) == 0xFFFE) ||
+        (c == 0xFFFF) || (c == 0x10FFFF)) {
+        return false;
+    }
+
+    if ((c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) ||
+        (c >= 0x100000 && c <= 0x10FFFD)) {
+        return false;
+    }
+
+    if ((c >= 0x200B && c <= 0x200F) || (c >= 0x202A && c <= 0x202E) ||
+        (c >= 0x2060 && c <= 0x206F) || (c == 0xFEFF) || (c == 0x061C) ||
+        (c >= 0xFFF9 && c <= 0xFFFB)) {
+        return false;
+    }
+
+    if (c == 0x034F || c == 0x17B4 || c == 0x17B5 || c == 0x180E ||
+        c == 0x115F || c == 0x1160) {
+        return false;
+    }
+
+    return true;
+}
