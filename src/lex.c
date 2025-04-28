@@ -427,6 +427,13 @@ enum bc_lex_res _lex_num(
                 has_dot = true;
                 break;
             default:
+                if (iswspace(lex->c) || _is_sep(lex->c)) {
+                    struct bc_strv data =
+                        bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
+                    tok->kind = BC_TOK_LIT_INTEGER;
+                    tok->val.integer = data;
+                    return BC_LEX_OK;
+                }
                 lex->err.val.invalid_integer_prefix = lex->c;
                 _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
             }
