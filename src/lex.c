@@ -400,7 +400,7 @@ static enum bc_lex_res _lex_string(
 }
 
 enum bc_lex_res _lex_num(
-    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
+    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc, bool negative) {
     if (iswdigit(lex->c)) {
         bool has_dot = false;
         bool has_digit_after_prefix = false;
@@ -473,6 +473,9 @@ enum bc_lex_res _lex_num(
                         _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
                     }
                 }
+                if (negative) {
+                    _ERROR(BC_LEX_ERR_NEGATIVE_BYTE_LITERAL);
+                }
                 has_byte_postfix = true;
                 _NEXTC();
                 break;
@@ -531,7 +534,7 @@ enum bc_lex_res bc_lex_next(
             }
 
             // Floating, integer, and byte
-            enum bc_lex_res num_res = _lex_num(lex, tok, loc);
+            enum bc_lex_res num_res = _lex_num(lex, tok, loc, false);
             if (num_res == BC_LEX_OK) {
                 return BC_LEX_OK;
             }
@@ -652,7 +655,7 @@ enum bc_lex_res bc_lex_next(
                     kind = BC_TOK_DASH;
                     _NEXTC();
                     // Negative floating, integer, and byte
-                    num_res = _lex_num(lex, tok, loc);
+                    num_res = _lex_num(lex, tok, loc, true);
                     if (num_res == BC_LEX_OK) {
                         return BC_LEX_OK;
                     }

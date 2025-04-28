@@ -58,6 +58,9 @@ static void _print_err(struct bc_lex_err err, const char* src) {
     case BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING: {
         fprintf(stderr, "byte postfix in floating point literal\n");
     } break;
+    case BC_LEX_ERR_NEGATIVE_BYTE_LITERAL: {
+        fprintf(stderr, "negative byte literal\n");
+    } break;
     }
 }
 
