@@ -4,10 +4,11 @@
 #include <errno.h>
 
 #include "lex.h"
+#include "parse.h"
 #include "str.h"
 #include "print.h"
 
-static void _print_err(struct bc_lex_err err, const char* src) {
+static void _print_lex_err(struct bc_lex_err err, const char* src) {
     switch (err.kind) {
     case BC_LEX_ERR_INVALID_UTF8_SEQUENCE: {
         bc_eprintf("invalid UTF-8 sequence$n");
@@ -55,6 +56,14 @@ static void _print_err(struct bc_lex_err err, const char* src) {
     } break;
     case BC_LEX_ERR_NEGATIVE_BYTE_LITERAL: {
         bc_eprintf("negative byte literal$n");
+    } break;
+    }
+}
+
+static void _print_parse_err(struct bc_parse_err err, const char* src) {
+    switch (err.kind) {
+    case BC_PARSE_ERR_LEX: {
+        _print_lex_err(err.val.lex, src);
     } break;
     }
 }
@@ -259,6 +268,20 @@ static void _print_tok(struct bc_tok tok) {
         delim_str);
 }
 
+static void _err_callback(struct bc_parse_err err, void* user_data) {
+    const char* src = (char*)user_data;
+    struct bc_lex_loc loc = err.loc;
+    bc_eprintf("$s:$z:$z: error: ", src, loc.s.l, loc.s.c);
+    _print_parse_err(err, src);
+}
+
+static void _tok_callback(
+    struct bc_tok tok, struct bc_lex_loc loc, void* user_data) {
+    const char* src = (char*)user_data;
+    bc_printf("$s:$z:$z-$z:$z:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
+    _print_tok(tok);
+}
+
 int main(int argc, char** argv) {
     setlocale(LC_ALL, "");
 
@@ -292,26 +315,16 @@ int main(int argc, char** argv) {
     fclose(file);
 
     struct bc_lex lex = bc_lex_new(bc_strv_from_str(file_data));
-
-    struct bc_tok tok;
-    struct bc_lex_loc loc;
-    while (true) {
-        enum bc_lex_res res = bc_lex_next(&lex, &tok, &loc);
-        if (res == BC_LEX_EMPTY) {
-            break;
-        }
-        if (res == BC_LEX_ERR) {
-            struct bc_lex_pos pos = lex.err.pos;
-            bc_eprintf("$s:$z:$z: error: ", src, pos.l, pos.c);
-            _print_err(lex.err, src);
-        } else {
-            bc_printf(
-                "$s:$z:$z-$z:$z:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
-            _print_tok(tok);
-        }
+    struct bc_parse parse =
+        bc_parse_new(lex, _err_callback, (void*)src, _tok_callback, (void*)src);
+    if (!bc_parse(&parse)) {
+        bc_eprintf("error: parsing failed$n");
+        bc_parse_free(parse);
+        bc_str_free(file_data);
+        return 1;
     }
 
-    bc_lex_free(lex);
+    bc_parse_free(parse);
     bc_str_free(file_data);
 
     return 0;
