@@ -33,27 +33,51 @@ enum bc_tok_kind {
     BC_TOK_KW_ENUM,
     BC_TOK_KW_FUNC,
     BC_TOK_KW_LET,
-    BC_TOK_LPAREN,
-    BC_TOK_RPAREN,
-    BC_TOK_LBRACE,
-    BC_TOK_RBRACE,
-    BC_TOK_LBRACKET,
-    BC_TOK_RBRACKET,
-    BC_TOK_LANGLE,
-    BC_TOK_RANGLE,
-    BC_TOK_EXCLAM,
-    BC_TOK_COLON,
-    BC_TOK_DOT,
-    BC_TOK_COMMA,
-    BC_TOK_SEMICOLON,
-    BC_TOK_EQ,
-    BC_TOK_PLUS,
-    BC_TOK_DASH,
-    BC_TOK_STAR,
-    BC_TOK_SLASH,
-    BC_TOK_AMP,
-    BC_TOK_PIPE,
-    BC_TOK_CARET,
+    BC_TOK_LPAREN,    // (
+    BC_TOK_RPAREN,    // )
+    BC_TOK_LBRACE,    // {
+    BC_TOK_RBRACE,    // }
+    BC_TOK_LBRACKET,  // [
+    BC_TOK_RBRACKET,  // ]
+    BC_TOK_LANGLE,    // <
+    BC_TOK_LANEQ,     // <=
+    BC_TOK_LANLAN,    // <<
+    BC_TOK_LANLANEQ,  // <<=
+    BC_TOK_RANGLE,    // >
+    BC_TOK_RANEQ,     // >=
+    BC_TOK_RANRAN,    // >>
+    BC_TOK_RANRANEQ,  // >>=
+    BC_TOK_EXCLAM,    // !
+    BC_TOK_EXCLEQ,    // !=
+    BC_TOK_COLON,     // :
+    BC_TOK_COLCOL,    // ::
+    BC_TOK_DOT,       // .
+    BC_TOK_COMMA,     // ,
+    BC_TOK_SEMICOLON, // ;
+    BC_TOK_EQ,        // =
+    BC_TOK_EQEQ,      // ==
+    BC_TOK_EQRAN,     // =>
+    BC_TOK_PLUS,      // +
+    BC_TOK_PLUSEQ,    // +=
+    BC_TOK_DASH,      // -
+    BC_TOK_DASHEQ,    // -=
+    BC_TOK_DASHRAN,   // ->
+    BC_TOK_STAR,      // *
+    BC_TOK_STAREQ,    // *=
+    BC_TOK_SLASH,     // /
+    BC_TOK_SLASHEQ,   // /=
+    BC_TOK_AMP,       // &
+    BC_TOK_AMPEQ,     // &=
+    BC_TOK_AMPAMP,    // &&
+    BC_TOK_PIPE,      // |
+    BC_TOK_PIPEEQ,    // |=
+    BC_TOK_PIPEPIPE,  // ||
+    BC_TOK_CARET,     // ^
+    BC_TOK_CARETEQ,   // ^=
+    BC_TOK_TILDE,     // ~
+    BC_TOK_PERCENT,   // %
+    BC_TOK_PERCENTEQ, // %=
+    BC_TOK_QUESTION,  // ?
     BC_TOK_COUNT,
 };
 

@@ -28,6 +28,12 @@
         } \
     }
 
+#define _RET_OK() \
+    { \
+        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev); \
+        return BC_LEX_OK; \
+    }
+
 #define _ERROR(error_kind) \
     lex->err.kind = error_kind; \
     lex->err.pos = lex->pos_prev; \
@@ -71,6 +77,9 @@ static bool _is_sep(int32_t c) {
     case L'&':
     case L'|':
     case L'^':
+    case L'~':
+    case L'%':
+    case L'?':
         return true;
     default:
         return false;
@@ -528,7 +537,7 @@ enum bc_lex_res bc_lex_next(
             // String and character
             enum bc_lex_res string_res = _lex_string(lex, tok, loc);
             if (string_res == BC_LEX_OK) {
-                return BC_LEX_OK;
+                _RET_OK();
             }
             if (string_res == BC_LEX_ERR) {
                 return BC_LEX_ERR;
@@ -537,7 +546,7 @@ enum bc_lex_res bc_lex_next(
             // Floating, integer, and byte
             enum bc_lex_res num_res = _lex_num(lex, tok, loc, false);
             if (num_res == BC_LEX_OK) {
-                return BC_LEX_OK;
+                _RET_OK();
             }
             if (num_res == BC_LEX_ERR) {
                 return BC_LEX_ERR;
@@ -601,63 +610,141 @@ enum bc_lex_res bc_lex_next(
                     tok->kind = BC_TOK_IDENT;
                     tok->val.ident = data;
                 }
-                *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
 
-                return BC_LEX_OK;
+                _RET_OK();
             }
 
-            // Single character tokens
+            // Special symbol tokens, comments, negative numbers
             if (_is_sep(lex->c)) {
-                enum bc_tok_kind kind = 0;
                 switch (lex->c) {
                 case L'(':
-                    kind = BC_TOK_LPAREN;
-                    break;
-                case L')':
-                    kind = BC_TOK_RPAREN;
-                    break;
-                case L'{':
-                    kind = BC_TOK_LBRACE;
-                    break;
-                case L'}':
-                    kind = BC_TOK_RBRACE;
-                    break;
-                case L'[':
-                    kind = BC_TOK_LBRACKET;
-                    break;
-                case L']':
-                    kind = BC_TOK_RBRACKET;
-                    break;
-                case L'<':
-                    kind = BC_TOK_LANGLE;
-                    break;
-                case L'>':
-                    kind = BC_TOK_RANGLE;
-                    break;
-                case L'!':
-                    kind = BC_TOK_EXCLAM;
-                    break;
-                case L':':
-                    kind = BC_TOK_COLON;
-                    break;
-                case L'.':
-                    kind = BC_TOK_DOT;
-                    break;
-                case L',':
-                    kind = BC_TOK_COMMA;
-                    break;
-                case L';':
-                    kind = BC_TOK_SEMICOLON;
-                    break;
-                case L'=':
-                    kind = BC_TOK_EQ;
-                    break;
-                case L'+':
-                    kind = BC_TOK_PLUS;
-                    break;
-                case L'-':
-                    kind = BC_TOK_DASH;
+                    tok->kind = BC_TOK_LPAREN;
                     _NEXTC();
+                    _RET_OK();
+                case L')':
+                    tok->kind = BC_TOK_RPAREN;
+                    _NEXTC();
+                    _RET_OK();
+                case L'{':
+                    tok->kind = BC_TOK_LBRACE;
+                    _NEXTC();
+                    _RET_OK();
+                case L'}':
+                    tok->kind = BC_TOK_RBRACE;
+                    _NEXTC();
+                    _RET_OK();
+                case L'[':
+                    tok->kind = BC_TOK_LBRACKET;
+                    _NEXTC();
+                    _RET_OK();
+                case L']':
+                    tok->kind = BC_TOK_RBRACKET;
+                    _NEXTC();
+                    _RET_OK();
+                case L'<':
+                    tok->kind = BC_TOK_LANGLE;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_LANEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'<' && !lex->eof) {
+                        tok->kind = BC_TOK_LANLAN;
+                        _NEXTC();
+                        if (lex->c == L'=' && !lex->eof) {
+                            tok->kind = BC_TOK_LANLANEQ;
+                            _NEXTC();
+                            _RET_OK();
+                        }
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'>':
+                    tok->kind = BC_TOK_RANGLE;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_RANEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'>' && !lex->eof) {
+                        tok->kind = BC_TOK_RANRAN;
+                        _NEXTC();
+                        if (lex->c == L'=' && !lex->eof) {
+                            tok->kind = BC_TOK_RANRANEQ;
+                            _NEXTC();
+                            _RET_OK();
+                        }
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'!':
+                    tok->kind = BC_TOK_EXCLAM;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_EXCLEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L':':
+                    tok->kind = BC_TOK_COLON;
+                    _NEXTC();
+                    if (lex->c == L':' && !lex->eof) {
+                        tok->kind = BC_TOK_COLCOL;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'.':
+                    tok->kind = BC_TOK_DOT;
+                    _NEXTC();
+                    _RET_OK();
+                case L',':
+                    tok->kind = BC_TOK_COMMA;
+                    _NEXTC();
+                    _RET_OK();
+                case L';':
+                    tok->kind = BC_TOK_SEMICOLON;
+                    _NEXTC();
+                    _RET_OK();
+                case L'=':
+                    tok->kind = BC_TOK_EQ;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_EQEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'>' && !lex->eof) {
+                        tok->kind = BC_TOK_EQRAN;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'+':
+                    tok->kind = BC_TOK_PLUS;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_PLUSEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'-':
+                    tok->kind = BC_TOK_DASH;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_DASHEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'>' && !lex->eof) {
+                        tok->kind = BC_TOK_DASHRAN;
+                        _NEXTC();
+                        _RET_OK();
+                    }
                     // Negative floating, integer, and byte
                     num_res = _lex_num(lex, tok, loc, true);
                     if (num_res == BC_LEX_OK) {
@@ -666,45 +753,88 @@ enum bc_lex_res bc_lex_next(
                     if (num_res == BC_LEX_ERR) {
                         return BC_LEX_ERR;
                     }
-                    tok->kind = kind;
-                    *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
-                    return BC_LEX_OK;
-                    break;
+                    _RET_OK();
                 case L'*':
-                    kind = BC_TOK_STAR;
-                    break;
-                case L'/':
-                    kind = BC_TOK_SLASH;
+                    tok->kind = BC_TOK_STAR;
                     _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_STAREQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'/':
+                    tok->kind = BC_TOK_SLASH;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_SLASHEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    // Skip comments
                     if (lex->c == L'/') {
                         while (!lex->eof && lex->c != L'\n') {
                             _NEXTC();
                         }
                         continue;
-                    } else {
-                        tok->kind = kind;
-                        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
-                        return BC_LEX_OK;
                     }
-                    break;
+                    _RET_OK();
                 case L'&':
-                    kind = BC_TOK_AMP;
-                    break;
+                    tok->kind = BC_TOK_AMP;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_AMPEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'&' && !lex->eof) {
+                        tok->kind = BC_TOK_AMPAMP;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
                 case L'|':
-                    kind = BC_TOK_PIPE;
-                    break;
+                    tok->kind = BC_TOK_PIPE;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_PIPEEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    if (lex->c == L'|' && !lex->eof) {
+                        tok->kind = BC_TOK_PIPEPIPE;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
                 case L'^':
-                    kind = BC_TOK_CARET;
-                    break;
-                default:
-                    BC_ASSERT_UNREACHABLE();
+                    tok->kind = BC_TOK_CARET;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_CARETEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'~':
+                    tok->kind = BC_TOK_TILDE;
+                    _NEXTC();
+                    _RET_OK();
+                case L'%':
+                    tok->kind = BC_TOK_PERCENT;
+                    _NEXTC();
+                    if (lex->c == L'=' && !lex->eof) {
+                        tok->kind = BC_TOK_PERCENTEQ;
+                        _NEXTC();
+                        _RET_OK();
+                    }
+                    _RET_OK();
+                case L'?':
+                    tok->kind = BC_TOK_QUESTION;
+                    _NEXTC();
+                    _RET_OK();
                 }
-                _NEXTC();
-
-                tok->kind = kind;
-                *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
-
-                return BC_LEX_OK;
+                BC_ASSERT_UNREACHABLE();
             }
 
             if (bc_uprop_is_print(lex->c)) {

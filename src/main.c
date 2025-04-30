@@ -203,17 +203,49 @@ static void _print_tok(struct bc_tok tok) {
         n = "sym";
         v = BC_STRV_FROM_LIT("<");
         break;
+    case BC_TOK_LANEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("<=");
+        break;
+    case BC_TOK_LANLAN:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("<<");
+        break;
+    case BC_TOK_LANLANEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("<<=");
+        break;
     case BC_TOK_RANGLE:
         n = "sym";
         v = BC_STRV_FROM_LIT(">");
+        break;
+    case BC_TOK_RANEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT(">=");
+        break;
+    case BC_TOK_RANRAN:
+        n = "sym";
+        v = BC_STRV_FROM_LIT(">>");
+        break;
+    case BC_TOK_RANRANEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT(">>=");
         break;
     case BC_TOK_EXCLAM:
         n = "sym";
         v = BC_STRV_FROM_LIT("!");
         break;
+    case BC_TOK_EXCLEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("!=");
+        break;
     case BC_TOK_COLON:
         n = "sym";
         v = BC_STRV_FROM_LIT(";");
+        break;
+    case BC_TOK_COLCOL:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("::");
         break;
     case BC_TOK_DOT:
         n = "sym";
@@ -231,33 +263,97 @@ static void _print_tok(struct bc_tok tok) {
         n = "sym";
         v = BC_STRV_FROM_LIT("=");
         break;
+    case BC_TOK_EQEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("==");
+        break;
+    case BC_TOK_EQRAN:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("=>");
+        break;
     case BC_TOK_PLUS:
         n = "sym";
         v = BC_STRV_FROM_LIT("+");
+        break;
+    case BC_TOK_PLUSEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("+=");
         break;
     case BC_TOK_DASH:
         n = "sym";
         v = BC_STRV_FROM_LIT("-");
         break;
+    case BC_TOK_DASHEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("-=");
+        break;
+    case BC_TOK_DASHRAN:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("->");
+        break;
     case BC_TOK_STAR:
         n = "sym";
         v = BC_STRV_FROM_LIT("*");
+        break;
+    case BC_TOK_STAREQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("*=");
         break;
     case BC_TOK_SLASH:
         n = "sym";
         v = BC_STRV_FROM_LIT("/");
         break;
+    case BC_TOK_SLASHEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("/=");
+        break;
     case BC_TOK_AMP:
         n = "sym";
         v = BC_STRV_FROM_LIT("&");
+        break;
+    case BC_TOK_AMPEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("&=");
+        break;
+    case BC_TOK_AMPAMP:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("&&");
         break;
     case BC_TOK_PIPE:
         n = "sym";
         v = BC_STRV_FROM_LIT("|");
         break;
+    case BC_TOK_PIPEEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("|=");
+        break;
+    case BC_TOK_PIPEPIPE:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("||");
+        break;
     case BC_TOK_CARET:
         n = "sym";
         v = BC_STRV_FROM_LIT("^");
+        break;
+    case BC_TOK_CARETEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("^=");
+        break;
+    case BC_TOK_TILDE:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("~");
+        break;
+    case BC_TOK_PERCENT:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("%");
+        break;
+    case BC_TOK_PERCENTEQ:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("%=");
+        break;
+    case BC_TOK_QUESTION:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("?");
         break;
     case BC_TOK_COUNT:
         n = "[invalid]";
