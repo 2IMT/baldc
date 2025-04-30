@@ -272,6 +272,8 @@ void bc_lex_free(struct bc_lex lex) {
 }
 
 static enum bc_lex_res _nextc(struct bc_lex* lex) {
+    lex->pos_prev = lex->pos;
+    lex->src_ptr_prev = lex->src.data;
     if (lex->src.len == 0) {
         lex->eof = true;
         return BC_LEX_EMPTY;
@@ -281,14 +283,12 @@ static enum bc_lex_res _nextc(struct bc_lex* lex) {
     if (len == -1) {
         return BC_LEX_ERR;
     }
-    lex->pos_prev = lex->pos;
     lex->pos.c++;
     if (codepoint == L'\n') {
         lex->pos.c = 1;
         lex->pos.l++;
     }
     lex->c = codepoint;
-    lex->src_ptr_prev = lex->src.data;
     lex->src.data += len;
     lex->src.len -= len;
     return BC_LEX_OK;
