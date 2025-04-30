@@ -198,6 +198,10 @@ static void _print_tok(struct bc_tok tok) {
         n = "sym";
         v = BC_STRV_FROM_LIT(">");
         break;
+    case BC_TOK_EXCLAM:
+        n = "sym";
+        v = BC_STRV_FROM_LIT("!");
+        break;
     case BC_TOK_COLON:
         n = "sym";
         v = BC_STRV_FROM_LIT(";");

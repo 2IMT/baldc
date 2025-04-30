@@ -58,6 +58,7 @@ static bool _is_sep(int32_t c) {
     case L']':
     case L'<':
     case L'>':
+    case L'!':
     case L':':
     case L'.':
     case L',':
@@ -632,6 +633,9 @@ enum bc_lex_res bc_lex_next(
                     break;
                 case L'>':
                     kind = BC_TOK_RANGLE;
+                    break;
+                case L'!':
+                    kind = BC_TOK_EXCLAM;
                     break;
                 case L':':
                     kind = BC_TOK_COLON;

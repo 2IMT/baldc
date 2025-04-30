@@ -41,6 +41,7 @@ enum bc_tok_kind {
     BC_TOK_RBRACKET,
     BC_TOK_LANGLE,
     BC_TOK_RANGLE,
+    BC_TOK_EXCLAM,
     BC_TOK_COLON,
     BC_TOK_DOT,
     BC_TOK_COMMA,
