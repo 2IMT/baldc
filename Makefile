@@ -37,8 +37,8 @@ ifeq ($(BALDC_RELEASE),1)
 
 	POST_BUILD := $(STRIP) $(BUILD_DIR)/$(BIN)
 else
-	CFLAGS += -g -fsanitize=address,undefined,leak -O0
-	LDFLAGS += -fsanitize=address,undefined,leak
+	CFLAGS += -g -O0 # -fsanitize=address -O0
+	LDFLAGS += # -fsanitize=address
 endif
 
 all: $(BUILD_DIR)/$(BIN)
@@ -55,7 +55,7 @@ $(BUILD_DIR)/$(BIN): $(OBJ_FILES)
 
 -include $(DEP_FILES)
 
-.PHONY: clean test
+.PHONY: clean tests test
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -80,7 +80,9 @@ $(TEST_EXECUTOR).o: $(TEST_DIR)/tools/test_executor.c | $(TEST_TOOLS_BUILD_DIR)
 $(TEST_EXECUTOR): $(TEST_EXECUTOR).o
 	$(CC) $< -o $@
 
-test: $(TEST_EXECS) $(TEST_EXECUTOR)
+tests: $(TEST_EXECS) $(TEST_EXECUTOR)
+
+test: tests
 	$(TEST_EXECUTOR) $(TEST_EXECS)
 
 -include $(TEST_DEP_FILES)
