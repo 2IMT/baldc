@@ -578,28 +578,56 @@ enum bc_lex_res bc_lex_next(
                     tok->kind = BC_TOK_KW_FLOAT;
                 } else if (BC_STRV_EQ_LIT(data, "bool")) {
                     tok->kind = BC_TOK_KW_BOOL;
+                } else if (BC_STRV_EQ_LIT(data, "tup")) {
+                    tok->kind = BC_TOK_KW_TUP;
+                } else if (BC_STRV_EQ_LIT(data, "unit")) {
+                    tok->kind = BC_TOK_KW_UNIT;
                 } else if (BC_STRV_EQ_LIT(data, "import")) {
                     tok->kind = BC_TOK_KW_IMPORT;
                 } else if (BC_STRV_EQ_LIT(data, "export")) {
                     tok->kind = BC_TOK_KW_EXPORT;
+                } else if (BC_STRV_EQ_LIT(data, "root")) {
+                    tok->kind = BC_TOK_KW_ROOT;
+                } else if (BC_STRV_EQ_LIT(data, "super")) {
+                    tok->kind = BC_TOK_KW_SUPER;
                 } else if (BC_STRV_EQ_LIT(data, "as")) {
                     tok->kind = BC_TOK_KW_AS;
                 } else if (BC_STRV_EQ_LIT(data, "try_as")) {
-                    tok->kind = BC_TOK_KW_TRY_AS;
-                } else if (BC_STRV_EQ_LIT(data, "try")) {
-                    tok->kind = BC_TOK_KW_TRY;
-                } else if (BC_STRV_EQ_LIT(data, "catch")) {
-                    tok->kind = BC_TOK_KW_CATCH;
-                } else if (BC_STRV_EQ_LIT(data, "defer")) {
-                    tok->kind = BC_TOK_KW_DEFER;
+                    tok->kind = BC_TOK_KW_TRYAS;
                 } else if (BC_STRV_EQ_LIT(data, "struct")) {
                     tok->kind = BC_TOK_KW_STRUCT;
                 } else if (BC_STRV_EQ_LIT(data, "enum")) {
                     tok->kind = BC_TOK_KW_ENUM;
                 } else if (BC_STRV_EQ_LIT(data, "func")) {
                     tok->kind = BC_TOK_KW_FUNC;
+                } else if (BC_STRV_EQ_LIT(data, "type")) {
+                    tok->kind = BC_TOK_KW_TYPE;
+                } else if (BC_STRV_EQ_LIT(data, "defer")) {
+                    tok->kind = BC_TOK_KW_DEFER;
                 } else if (BC_STRV_EQ_LIT(data, "let")) {
                     tok->kind = BC_TOK_KW_LET;
+                } else if (BC_STRV_EQ_LIT(data, "if")) {
+                    tok->kind = BC_TOK_KW_IF;
+                } else if (BC_STRV_EQ_LIT(data, "elif")) {
+                    tok->kind = BC_TOK_KW_ELIF;
+                } else if (BC_STRV_EQ_LIT(data, "else")) {
+                    tok->kind = BC_TOK_KW_ELSE;
+                } else if (BC_STRV_EQ_LIT(data, "loop")) {
+                    tok->kind = BC_TOK_KW_LOOP;
+                } else if (BC_STRV_EQ_LIT(data, "for")) {
+                    tok->kind = BC_TOK_KW_FOR;
+                } else if (BC_STRV_EQ_LIT(data, "while")) {
+                    tok->kind = BC_TOK_KW_WHILE;
+                } else if (BC_STRV_EQ_LIT(data, "switch")) {
+                    tok->kind = BC_TOK_KW_SWITCH;
+                } else if (BC_STRV_EQ_LIT(data, "default")) {
+                    tok->kind = BC_TOK_KW_DEFAULT;
+                } else if (BC_STRV_EQ_LIT(data, "break")) {
+                    tok->kind = BC_TOK_KW_BREAK;
+                } else if (BC_STRV_EQ_LIT(data, "continue")) {
+                    tok->kind = BC_TOK_KW_CONTINUE;
+                } else if (BC_STRV_EQ_LIT(data, "return")) {
+                    tok->kind = BC_TOK_KW_RETURN;
                 } else if (BC_STRV_EQ_LIT(data, "true")) {
                     tok->kind = BC_TOK_LIT_BOOLEAN;
                     tok->val.boolean = true;

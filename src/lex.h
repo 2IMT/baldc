@@ -10,29 +10,50 @@
 
 enum bc_tok_kind {
     BC_TOK_IDENT,
+    // Literals
     BC_TOK_LIT_STRING,
     BC_TOK_LIT_CHARACTER,
     BC_TOK_LIT_INTEGER,
     BC_TOK_LIT_BYTE,
     BC_TOK_LIT_FLOATING,
     BC_TOK_LIT_BOOLEAN,
+    // Types
     BC_TOK_KW_STRING,
     BC_TOK_KW_CHAR,
     BC_TOK_KW_INT,
     BC_TOK_KW_BYTE,
     BC_TOK_KW_FLOAT,
     BC_TOK_KW_BOOL,
+    BC_TOK_KW_TUP,
+    BC_TOK_KW_UNIT,
+    // Visibility and importing
     BC_TOK_KW_IMPORT,
     BC_TOK_KW_EXPORT,
+    BC_TOK_KW_ROOT,
+    BC_TOK_KW_SUPER,
+    // Casting
     BC_TOK_KW_AS,
-    BC_TOK_KW_TRY_AS,
-    BC_TOK_KW_TRY,
-    BC_TOK_KW_CATCH,
-    BC_TOK_KW_DEFER,
+    BC_TOK_KW_TRYAS,
+    // Types
     BC_TOK_KW_STRUCT,
     BC_TOK_KW_ENUM,
     BC_TOK_KW_FUNC,
+    BC_TOK_KW_TYPE,
+    // Statements
+    BC_TOK_KW_DEFER,
     BC_TOK_KW_LET,
+    BC_TOK_KW_IF,
+    BC_TOK_KW_ELIF,
+    BC_TOK_KW_ELSE,
+    BC_TOK_KW_LOOP,
+    BC_TOK_KW_FOR,
+    BC_TOK_KW_WHILE,
+    BC_TOK_KW_SWITCH,
+    BC_TOK_KW_DEFAULT,
+    BC_TOK_KW_BREAK,
+    BC_TOK_KW_CONTINUE,
+    BC_TOK_KW_RETURN,
+    // Symbols
     BC_TOK_LPAREN,    // (
     BC_TOK_RPAREN,    // )
     BC_TOK_LBRACE,    // {
@@ -78,6 +99,7 @@ enum bc_tok_kind {
     BC_TOK_PERCENT,   // %
     BC_TOK_PERCENTEQ, // %=
     BC_TOK_QUESTION,  // ?
+    // Token count
     BC_TOK_COUNT,
 };
 

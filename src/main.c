@@ -131,6 +131,14 @@ static void _print_tok(struct bc_tok tok) {
         n = "keyword";
         v = BC_STRV_FROM_LIT("bool");
         break;
+    case BC_TOK_KW_TUP:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("tup");
+        break;
+    case BC_TOK_KW_UNIT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("unit");
+        break;
     case BC_TOK_KW_IMPORT:
         n = "keyword";
         v = BC_STRV_FROM_LIT("import");
@@ -139,25 +147,21 @@ static void _print_tok(struct bc_tok tok) {
         n = "keyword";
         v = BC_STRV_FROM_LIT("export");
         break;
+    case BC_TOK_KW_ROOT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("root");
+        break;
+    case BC_TOK_KW_SUPER:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("super");
+        break;
     case BC_TOK_KW_AS:
         n = "keyword";
         v = BC_STRV_FROM_LIT("as");
         break;
-    case BC_TOK_KW_TRY_AS:
+    case BC_TOK_KW_TRYAS:
         n = "keyword";
         v = BC_STRV_FROM_LIT("try_as");
-        break;
-    case BC_TOK_KW_TRY:
-        n = "keyword";
-        v = BC_STRV_FROM_LIT("try");
-        break;
-    case BC_TOK_KW_CATCH:
-        n = "keyword";
-        v = BC_STRV_FROM_LIT("catch");
-        break;
-    case BC_TOK_KW_DEFER:
-        n = "keyword";
-        v = BC_STRV_FROM_LIT("defer");
         break;
     case BC_TOK_KW_STRUCT:
         n = "keyword";
@@ -171,9 +175,61 @@ static void _print_tok(struct bc_tok tok) {
         n = "keyword";
         v = BC_STRV_FROM_LIT("func");
         break;
+    case BC_TOK_KW_TYPE:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("func");
+        break;
+    case BC_TOK_KW_DEFER:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("defer");
+        break;
     case BC_TOK_KW_LET:
         n = "keyword";
         v = BC_STRV_FROM_LIT("let");
+        break;
+    case BC_TOK_KW_IF:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("if");
+        break;
+    case BC_TOK_KW_ELIF:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("elif");
+        break;
+    case BC_TOK_KW_ELSE:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("else");
+        break;
+    case BC_TOK_KW_LOOP:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("loop");
+        break;
+    case BC_TOK_KW_FOR:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("for");
+        break;
+    case BC_TOK_KW_WHILE:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("while");
+        break;
+    case BC_TOK_KW_SWITCH:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("switch");
+        break;
+    case BC_TOK_KW_DEFAULT:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("default");
+        break;
+    case BC_TOK_KW_BREAK:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("break");
+        break;
+    case BC_TOK_KW_CONTINUE:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("continue");
+        break;
+    case BC_TOK_KW_RETURN:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("return");
         break;
     case BC_TOK_LPAREN:
         n = "sym";
