@@ -88,10 +88,10 @@ static bool _is_sep(int32_t c) {
 
 static bool _parse_hex_digits(
     const int32_t* digits, size_t len, int32_t* codepoint) {
-    int32_t result = 0;
+    uint32_t result = 0;
     for (size_t i = 0; i < len; ++i) {
         int32_t c = digits[i];
-        int value = 0;
+        uint32_t value = 0;
 
         if (c >= L'0' && c <= L'9') {
             value = c - L'0';
@@ -105,7 +105,10 @@ static bool _parse_hex_digits(
 
         result = (result << 4) | value;
     }
-    *codepoint = result;
+    if (result > 0x10FFFF || (result >= 0xD800 && result <= 0xDFFF)) {
+        return false;
+    }
+    *codepoint = (int32_t)result;
     return true;
 }
 
@@ -184,21 +187,21 @@ static bool _unescape(struct bc_strv input, struct bc_strv* output,
                 switch (c) {
                 case L'x':
                     len = 2;
-                    for (size_t i = 0; i < 2; i++) {
+                    for (size_t i = 0; i < len; i++) {
                         _ITERTRYNEXT();
                         digits[i] = c;
                     }
                     break;
                 case L'u':
                     len = 4;
-                    for (size_t i = 0; i < 4; i++) {
+                    for (size_t i = 0; i < len; i++) {
                         _ITERTRYNEXT();
                         digits[i] = c;
                     }
                     break;
                 case L'U':
-                    len = 8;
-                    for (size_t i = 0; i < 8; i++) {
+                    len = 6;
+                    for (size_t i = 0; i < len; i++) {
                         _ITERTRYNEXT();
                         digits[i] = c;
                     }
