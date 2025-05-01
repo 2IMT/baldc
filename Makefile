@@ -37,8 +37,8 @@ ifeq ($(BALDC_RELEASE),1)
 
 	POST_BUILD := $(STRIP) $(BUILD_DIR)/$(BIN)
 else
-	CFLAGS += -g -O0 # -fsanitize=address -O0
-	LDFLAGS += # -fsanitize=address
+	CFLAGS += -g -O0 -fsanitize=address,undefined,leak -O0
+	LDFLAGS += -fsanitize=address,undefined,leak
 endif
 
 all: $(BUILD_DIR)/$(BIN)
