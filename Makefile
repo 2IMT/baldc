@@ -1,5 +1,6 @@
 BALDC_RELEASE ?= 0
 BALDC_LTO_ON_RELEASE ?= 1
+BALDC_FSANITIZE_ON_DEBUG ?= 0
 
 CC ?= gcc
 STRIP ?= strip
@@ -37,8 +38,11 @@ ifeq ($(BALDC_RELEASE),1)
 
 	POST_BUILD := $(STRIP) $(BUILD_DIR)/$(BIN)
 else
-	CFLAGS += -g -O0 -fsanitize=address,undefined,leak -O0
-	LDFLAGS += -fsanitize=address,undefined,leak
+	CFLAGS += -g -O0
+	ifeq ($(BALDC_FSANITIZE_ON_DEBUG),1)
+ 	    CFLAGS += -fsanitize=address,undefined,leak
+	    LDFLAGS += -fsanitize=address,undefined,leak
+	endif
 endif
 
 all: $(BUILD_DIR)/$(BIN)
