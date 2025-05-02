@@ -5,36 +5,34 @@
 
 #define _CREATE_LEXER(src) \
     struct bc_lex _lex = bc_lex_new(BC_STRV_FROM_LIT(src)); \
-    struct bc_tok _tok; \
-    struct bc_lex_loc _loc; \
-    enum bc_lex_res _res = BC_LEX_OK;
+    struct bc_tok _tok;
 
 #define _RESET_LEXER(src) \
     bc_lex_free(_lex); \
-    _lex = bc_lex_new(BC_STRV_FROM_LIT(src)); \
-    _res = BC_LEX_OK;
+    _lex = bc_lex_new(BC_STRV_FROM_LIT(src));
 
 #define _FREE_LEXER() bc_lex_free(_lex);
 
 #define _NEXT() \
-    TEST_ASSERT(_res == BC_LEX_OK); \
-    TEST_ASSERT(bc_lex_next(&_lex, &_tok, &_loc) == BC_LEX_OK);
+    _tok = bc_lex_next(&_lex); \
+    TEST_ASSERT(_tok.kind != BC_TOK_ERR); \
+    TEST_ASSERT(_tok.kind != BC_TOK_EOF);
 
 #define _NEXT_EMPTY() \
-    TEST_ASSERT(_res == BC_LEX_OK); \
-    TEST_ASSERT(bc_lex_next(&_lex, &_tok, &_loc) == BC_LEX_EMPTY);
+    _tok = bc_lex_next(&_lex); \
+    TEST_ASSERT(_tok.kind == BC_TOK_EOF);
 
 #define _NEXT_ERROR() \
-    TEST_ASSERT(_res == BC_LEX_OK); \
-    TEST_ASSERT(bc_lex_next(&_lex, &_tok, &_loc) == BC_LEX_ERR);
+    _tok = bc_lex_next(&_lex); \
+    TEST_ASSERT(_tok.kind == BC_TOK_ERR);
 
 #define _ASSERT_EMPTY() TEST_ASSERT(_res == BC_LEX_EMPTY);
 
 #define _ASSERT_LOCATION(ls, cs, le, ce) \
-    TEST_ASSERT(_loc.s.l == ls); \
-    TEST_ASSERT(_loc.s.c == cs); \
-    TEST_ASSERT(_loc.e.l == le); \
-    TEST_ASSERT(_loc.e.c == ce);
+    TEST_ASSERT(_tok.loc.s.l == ls); \
+    TEST_ASSERT(_tok.loc.s.c == cs); \
+    TEST_ASSERT(_tok.loc.e.l == le); \
+    TEST_ASSERT(_tok.loc.e.c == ce);
 
 #define _ASSERT_KIND(token_kind) TEST_ASSERT(_tok.kind == token_kind);
 
@@ -679,6 +677,56 @@ TEST_BEGIN(test_symbols) {
     TEST_END;
 }
 
+TEST_BEGIN(test_recovery) {
+
+    _CREATE_LEXER("import std::io;\nio::println(-10y); return 1;");
+    _NEXT_KIND(BC_TOK_KW_IMPORT);
+    _NEXT_IDENT_VALUE("std")
+    _NEXT_KIND(BC_TOK_COLCOL);
+    _NEXT_IDENT_VALUE("io");
+    _NEXT_KIND(BC_TOK_SEMICOLON);
+    _NEXT_IDENT_VALUE("io");
+    _NEXT_KIND(BC_TOK_COLCOL);
+    _NEXT_IDENT_VALUE("println");
+    _NEXT_KIND(BC_TOK_LPAREN);
+    _NEXT_ERROR();
+    _NEXT_KIND(BC_TOK_RPAREN);
+    _NEXT_KIND(BC_TOK_SEMICOLON);
+    _NEXT_KIND(BC_TOK_KW_RETURN);
+    _NEXT_INTEGER_VALUE("1");
+    _NEXT_KIND(BC_TOK_SEMICOLON);
+    _NEXT_EMPTY();
+
+    _RESET_LEXER("hello world \"hello \0 world\" 25.25");
+    _NEXT_IDENT_VALUE("hello")
+    _NEXT_IDENT_VALUE("world")
+    _NEXT_ERROR();
+    _NEXT_FLOATING_VALUE("25.25");
+    _NEXT_EMPTY();
+
+    _RESET_LEXER("\"HE\0LLO\"");
+    _NEXT_ERROR();
+    _NEXT_EMPTY();
+
+    _RESET_LEXER("break continue 0b2 break");
+    _NEXT_KIND(BC_TOK_KW_BREAK);
+    _NEXT_KIND(BC_TOK_KW_CONTINUE);
+    _NEXT_ERROR();
+    _NEXT_KIND(BC_TOK_KW_BREAK);
+    _NEXT_EMPTY();
+
+    _RESET_LEXER("break continue 0of break");
+    _NEXT_KIND(BC_TOK_KW_BREAK);
+    _NEXT_KIND(BC_TOK_KW_CONTINUE);
+    _NEXT_ERROR();
+    _NEXT_KIND(BC_TOK_KW_BREAK);
+    _NEXT_EMPTY();
+
+    _FREE_LEXER();
+
+    TEST_END;
+}
+
 TESTS(test_empty, test_identifiers, test_strings, test_characters,
     test_integers, test_bytes, test_floats, test_numbers, test_booleans,
-    test_keywords, test_symbols)
+    test_keywords, test_symbols, test_recovery)
