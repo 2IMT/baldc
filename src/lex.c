@@ -5,45 +5,47 @@
 #include "assert.h"
 #include "uprop.h"
 
-#define _NEXTC() \
-    { \
-        if (_nextc(lex) == BC_LEX_ERR) { \
-            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE; \
-            lex->err.pos = lex->pos_prev; \
-            return BC_LEX_ERR; \
-        } \
+static struct bc_tok _none(void) {
+    return (struct bc_tok) {
+        .loc = { 0 },
+        .kind = BC_TOK_NONE,
+        .val = { { 0 } },
     };
+}
 
-#define _RECOVER() \
-    { \
-        if (_recover(lex) == BC_LEX_ERR) { \
-            return BC_LEX_ERR; \
-        } \
-    }
+static struct bc_lex_loc _tok_loc(struct bc_lex lex) {
+    return bc_lex_loc_new(lex.spos, lex.pos_prev);
+}
 
-#define _RECOVER_TO(character) \
-    { \
-        if (_recover_to(lex, character) == BC_LEX_ERR) { \
-            return BC_LEX_ERR; \
-        } \
-    }
+static struct bc_tok _errval(struct bc_lex lex, struct bc_lex_err err) {
+    struct bc_tok res = {
+        .loc = _tok_loc(lex),
+        .kind = BC_TOK_ERR,
+        .val = { .err = err },
+    };
+    return res;
+}
 
-#define _RET_OK() \
-    { \
-        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev); \
-        return BC_LEX_OK; \
-    }
+static struct bc_tok _errv(
+    struct bc_lex lex, enum bc_lex_err_kind kind, union bc_lex_err_val val) {
+    return _errval(lex, (struct bc_lex_err) {
+                            .kind = kind,
+                            .val = val,
+                            .pos = lex.pos_prev,
+                        });
+}
 
-#define _ERROR(error_kind) \
-    lex->err.kind = error_kind; \
-    lex->err.pos = lex->pos_prev; \
-    _RECOVER(); \
-    return BC_LEX_ERR;
+static struct bc_tok _err(struct bc_lex lex, enum bc_lex_err_kind kind) {
+    return _errv(lex, kind, (union bc_lex_err_val) { { 0 } });
+}
 
-#define _ERROR_NK() \
-    lex->err.pos = lex->pos_prev; \
-    _RECOVER(); \
-    return BC_LEX_ERR;
+static struct bc_tok _kind(struct bc_lex lex, enum bc_tok_kind kind) {
+    return (struct bc_tok) {
+        .loc = _tok_loc(lex),
+        .kind = kind,
+        .val = { { 0 } },
+    };
+}
 
 static bool _is_bin_digit(int32_t c) { return c == L'0' || c == L'1'; }
 
@@ -118,6 +120,7 @@ static bool _unescape(struct bc_strv input, struct bc_strv* output,
 #define _ITERTRYNEXT() \
     { \
         enum bc_strv_iter_res res = bc_strv_iter_next(&input_iter, &c); \
+        BC_ASSERT(res != BC_STRV_ITER_ERR); \
         if (res != BC_STRV_ITER_OK) { \
             return false; \
         } \
@@ -259,14 +262,6 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
         },
         .init = true,
         .eof = false,
-        .err = {
-            .kind = 0,
-            .val = { { 0 } },
-            .pos = {
-                .l = 0,
-                .c = 0
-            },
-        }
     };
 }
 
@@ -274,18 +269,16 @@ void bc_lex_free(struct bc_lex lex) {
     bc_mem_arena_free(lex.escaped_strings_arena);
 }
 
-static enum bc_lex_res _nextc(struct bc_lex* lex) {
+static void _nextc(struct bc_lex* lex) {
     lex->pos_prev = lex->pos;
     lex->src_ptr_prev = lex->src.data;
     if (lex->src.len == 0) {
         lex->eof = true;
-        return BC_LEX_EMPTY;
+        return;
     }
     int32_t codepoint = 0;
     int len = bc_utf8_decode(lex->src.data, lex->src.len, &codepoint);
-    if (len == -1) {
-        return BC_LEX_ERR;
-    }
+    BC_ASSERT(len > 0);
     lex->pos.c++;
     if (codepoint == L'\n') {
         lex->pos.c = 1;
@@ -294,60 +287,50 @@ static enum bc_lex_res _nextc(struct bc_lex* lex) {
     lex->c = codepoint;
     lex->src.data += len;
     lex->src.len -= len;
-    return BC_LEX_OK;
+    return;
 }
 
-static enum bc_lex_res _recover(struct bc_lex* lex) {
-    while (!bc_uprop_is_space(lex->c) && !_is_sep(lex->c)) {
-        if (_nextc(lex) == BC_LEX_ERR) {
-            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE;
-            lex->err.pos = lex->pos_prev;
-            return BC_LEX_ERR;
-        }
-        if (lex->eof) {
-            return BC_LEX_EMPTY;
-        }
+static void _recover(struct bc_lex* lex) {
+    while (!bc_uprop_is_space(lex->c) && !_is_sep(lex->c) && !lex->eof) {
+        _nextc(lex);
     }
-    return BC_LEX_OK;
 }
 
-static enum bc_lex_res _recover_to(struct bc_lex* lex, int32_t c) {
-    while (lex->c != c) {
-        if (_nextc(lex) == BC_LEX_ERR) {
-            lex->err.kind = BC_LEX_ERR_INVALID_UTF8_SEQUENCE;
-            lex->err.pos = lex->pos_prev;
-            return BC_LEX_ERR;
+static void _recover_to(struct bc_lex* lex, int32_t c) {
+    bool escaped = false;
+    while (!lex->eof) {
+        if (escaped) {
+            escaped = false;
+        } else if (lex->c == L'\\') {
+            escaped = true;
+        } else if (lex->c == c) {
+            _nextc(lex);
+            break;
         }
-        if (lex->eof) {
-            return BC_LEX_EMPTY;
-        }
+        _nextc(lex);
     }
-    if (_nextc(lex) == BC_LEX_ERR) {
-        return BC_LEX_ERR;
-    }
-    return BC_LEX_OK;
 }
 
-static enum bc_lex_res _lex_string(
-    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
+static struct bc_tok _lex_string(struct bc_lex* lex) {
     if (lex->c == L'"' || lex->c == L'\'') {
         bool is_char = false;
         if (lex->c == L'\'') {
             is_char = true;
         }
 
-        _NEXTC();
+        _nextc(lex);
         bool escaped = false;
         bool closed = false;
-        while (true) {
+        while (!lex->eof) {
             if (!bc_uprop_is_print(lex->c)) {
-                lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
-                lex->err.pos = lex->pos_prev;
-                _RECOVER_TO(L'"');
-                return BC_LEX_ERR;
-            }
-            if (lex->eof) {
-                break;
+                struct bc_tok err =
+                    _err(*lex, BC_LEX_ERR_NON_PRINTABLE_CHARACTER);
+                if (is_char) {
+                    _recover_to(lex, L'\'');
+                } else {
+                    _recover_to(lex, L'"');
+                }
+                return err;
             }
             if (escaped) {
                 escaped = false;
@@ -360,60 +343,60 @@ static enum bc_lex_res _lex_string(
                     escaped = true;
                 }
             }
-            _NEXTC();
+
+            _nextc(lex);
         }
         if (!closed) {
+            union bc_lex_err_val val = { .unterminated_character = lex->spos };
             if (is_char) {
-                lex->err.val.unterminated_character = lex->spos;
-                _ERROR(BC_LEX_ERR_UNTERMINATED_CHARACTER)
+                return _errv(*lex, BC_LEX_ERR_UNTERMINATED_CHARACTER, val);
             } else {
-                lex->err.val.unterminated_string = lex->spos;
-                _ERROR(BC_LEX_ERR_UNTERMINATED_STRING)
+                return _errv(*lex, BC_LEX_ERR_UNTERMINATED_CHARACTER, val);
             }
         }
-        _NEXTC();
+        _nextc(lex);
         struct bc_strv data =
             bc_strv_from_range(lex->tok_begin + 1, lex->src_ptr_prev - 1);
         if (is_char) {
             size_t len = 0;
-            if (!bc_strv_len(data, &len)) {
-                _ERROR(BC_LEX_ERR_INVALID_UTF8_SEQUENCE);
-            }
+            bc_strv_len(data, &len);
             if (len == 0) {
-                _ERROR(BC_LEX_ERR_EMPTY_CHARACTER);
+                return _err(*lex, BC_LEX_ERR_EMPTY_CHARACTER);
             }
         }
         struct bc_strv escaped_data = { 0 };
+        struct bc_lex_err unescape_err;
         if (!_unescape(data, &escaped_data, lex->spos,
-                &lex->escaped_strings_arena, &lex->err)) {
-            _ERROR_NK();
+                &lex->escaped_strings_arena, &unescape_err)) {
+            return _errval(*lex, unescape_err);
         }
         if (is_char) {
             size_t len = 0;
-            if (!bc_strv_len(escaped_data, &len)) {
-                _ERROR(BC_LEX_ERR_INVALID_UTF8_SEQUENCE);
-            }
+            bc_strv_len(escaped_data, &len);
             if (len > 1) {
-                _ERROR(BC_LEX_ERR_MULTICHARACTER);
+                return _err(*lex, BC_LEX_ERR_MULTICHARACTER);
             }
         }
-
+        enum bc_tok_kind kind;
+        union bc_tok_val val;
         if (is_char) {
-            tok->kind = BC_TOK_LIT_CHARACTER;
-            tok->val.character = escaped_data;
+            kind = BC_TOK_LIT_CHARACTER;
+            val.character = escaped_data;
         } else {
-            tok->kind = BC_TOK_LIT_STRING;
-            tok->val.string = escaped_data;
+            kind = BC_TOK_LIT_STRING;
+            val.string = escaped_data;
         }
-        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
 
-        return BC_LEX_OK;
+        return (struct bc_tok) {
+            .loc = _tok_loc(*lex),
+            .kind = kind,
+            .val = val,
+        };
     }
-    return BC_LEX_EMPTY;
+    return _none();
 }
 
-enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
-    struct bc_lex_loc* loc, bool negative) {
+static struct bc_tok _lex_num(struct bc_lex* lex, bool negative) {
     if (bc_uprop_is_digit(lex->c)) {
         bool has_dot = false;
         bool has_digit_after_prefix = false;
@@ -421,7 +404,7 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
         int base = 10;
 
         if (lex->c == L'0') {
-            _NEXTC();
+            _nextc(lex);
             switch (lex->c) {
             case L'b':
             case L'B':
@@ -442,16 +425,22 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 if (bc_uprop_is_space(lex->c) || _is_sep(lex->c)) {
                     struct bc_strv data =
                         bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
-                    tok->kind = BC_TOK_LIT_INTEGER;
-                    tok->val.integer = data;
-                    return BC_LEX_OK;
+                    return (struct bc_tok) {
+                        .loc = _tok_loc(*lex),
+                        .kind = BC_TOK_LIT_INTEGER,
+                        .val = { .integer = data },
+                    };
                 }
-                lex->err.val.invalid_integer_prefix = lex->c;
-                _ERROR(BC_LEX_ERR_INVALID_INTEGER_PREFIX);
+                struct bc_tok err =
+                    _errv(*lex, BC_LEX_ERR_INVALID_INTEGER_PREFIX,
+                        (union bc_lex_err_val) {
+                            .invalid_integer_prefix = lex->c });
+                _recover(lex);
+                return err;
             }
         }
 
-        _NEXTC();
+        _nextc(lex);
         while (!lex->eof) {
             if (lex->c == L'.' && base == 10) {
                 if (has_dot) {
@@ -459,7 +448,7 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 }
                 has_dot = true;
                 struct bc_lex saved_lex = *lex;
-                _NEXTC();
+                _nextc(lex);
                 if (!bc_uprop_is_digit(lex->c)) {
                     *lex = saved_lex;
                     has_dot = false;
@@ -475,54 +464,73 @@ enum bc_lex_res _lex_num(struct bc_lex* lex, struct bc_tok* tok,
                 has_digit_after_prefix = true;
             } else if ((_is_sep(lex->c) || bc_uprop_is_space(lex->c))) {
                 if (base != 10 && !has_digit_after_prefix) {
-                    _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                    struct bc_tok err =
+                        _err(*lex, BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                    _recover(lex);
+                    return err;
                 }
                 break;
             } else if (lex->c == L'y' || lex->c == L'Y') {
                 if (has_dot) {
-                    _ERROR(BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING);
+                    struct bc_tok err =
+                        _err(*lex, BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING);
+                    _recover(lex);
+                    return err;
                 } else {
                     if (base != 10 && !has_digit_after_prefix) {
-                        _ERROR(BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                        struct bc_tok err =
+                            _err(*lex, BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX);
+                        _recover(lex);
+                        return err;
                     }
                 }
                 if (negative) {
-                    _ERROR(BC_LEX_ERR_NEGATIVE_BYTE_LITERAL);
+                    struct bc_tok err =
+                        _err(*lex, BC_LEX_ERR_NEGATIVE_BYTE_LITERAL);
+                    _recover(lex);
+                    return err;
                 }
                 has_byte_postfix = true;
-                _NEXTC();
+                _nextc(lex);
                 break;
             } else if (lex->c == L'_') {
                 // OK
             } else {
-                lex->err.val.unexpected_character_in_number = lex->c;
-                _ERROR(BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER);
+                struct bc_tok err =
+                    _errv(*lex, BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER,
+                        (union bc_lex_err_val) {
+                            .unexpected_character_in_number = lex->c });
+                _recover(lex);
+                return err;
             }
-            _NEXTC();
+            _nextc(lex);
         }
 
         struct bc_strv data =
             bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
 
+        enum bc_tok_kind kind;
+        union bc_tok_val val;
         if (has_dot) {
-            tok->kind = BC_TOK_LIT_FLOATING;
-            tok->val.floating = data;
+            kind = BC_TOK_LIT_FLOATING;
+            val.floating = data;
         } else if (has_byte_postfix) {
-            tok->kind = BC_TOK_LIT_BYTE;
-            tok->val.byte = data;
+            kind = BC_TOK_LIT_BYTE;
+            val.byte = data;
         } else {
-            tok->kind = BC_TOK_LIT_INTEGER;
-            tok->val.integer = data;
+            kind = BC_TOK_LIT_INTEGER;
+            val.integer = data;
         }
-        *loc = bc_lex_loc_new(lex->spos, lex->pos_prev);
-
-        return BC_LEX_OK;
+        return (struct bc_tok) {
+            .loc = _tok_loc(*lex),
+            .kind = kind,
+            .val = val,
+        };
     }
-    return BC_LEX_EMPTY;
+    return _none();
 }
 
-enum bc_lex_res bc_lex_next(
-    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc) {
+struct bc_tok bc_lex_next(struct bc_lex* lex) {
     if (lex->init) {
         _nextc(lex);
         lex->init = false;
@@ -530,7 +538,7 @@ enum bc_lex_res bc_lex_next(
     while (true) {
         if (!lex->eof) {
             if (bc_uprop_is_space(lex->c)) {
-                _NEXTC();
+                _nextc(lex);
                 continue;
             }
 
@@ -538,29 +546,23 @@ enum bc_lex_res bc_lex_next(
             lex->spos = lex->pos_prev;
 
             // String and character
-            enum bc_lex_res string_res = _lex_string(lex, tok, loc);
-            if (string_res == BC_LEX_OK) {
-                _RET_OK();
-            }
-            if (string_res == BC_LEX_ERR) {
-                return BC_LEX_ERR;
+            struct bc_tok string_tok = _lex_string(lex);
+            if (string_tok.kind != BC_TOK_NONE) {
+                return string_tok;
             }
 
             // Floating, integer, and byte
-            enum bc_lex_res num_res = _lex_num(lex, tok, loc, false);
-            if (num_res == BC_LEX_OK) {
-                _RET_OK();
-            }
-            if (num_res == BC_LEX_ERR) {
-                return BC_LEX_ERR;
+            struct bc_tok num_tok = _lex_num(lex, false);
+            if (num_tok.kind != BC_TOK_NONE) {
+                return num_tok;
             }
 
             // Ident, keywords, and boolean
             if (bc_uprop_is_alpha(lex->c) || lex->c == L'_') {
-                _NEXTC();
+                _nextc(lex);
                 while (!lex->eof) {
                     if (bc_uprop_is_alnum(lex->c) || lex->c == L'_') {
-                        _NEXTC();
+                        _nextc(lex);
                     } else {
                         break;
                     }
@@ -570,314 +572,320 @@ enum bc_lex_res bc_lex_next(
                     bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
 
                 if (BC_STRV_EQ_LIT(data, "string")) {
-                    tok->kind = BC_TOK_KW_STRING;
+                    return _kind(*lex, BC_TOK_KW_STRING);
                 } else if (BC_STRV_EQ_LIT(data, "char")) {
-                    tok->kind = BC_TOK_KW_CHAR;
+                    return _kind(*lex, BC_TOK_KW_CHAR);
                 } else if (BC_STRV_EQ_LIT(data, "int")) {
-                    tok->kind = BC_TOK_KW_INT;
+                    return _kind(*lex, BC_TOK_KW_INT);
                 } else if (BC_STRV_EQ_LIT(data, "byte")) {
-                    tok->kind = BC_TOK_KW_BYTE;
+                    return _kind(*lex, BC_TOK_KW_BYTE);
                 } else if (BC_STRV_EQ_LIT(data, "float")) {
-                    tok->kind = BC_TOK_KW_FLOAT;
+                    return _kind(*lex, BC_TOK_KW_FLOAT);
                 } else if (BC_STRV_EQ_LIT(data, "bool")) {
-                    tok->kind = BC_TOK_KW_BOOL;
+                    return _kind(*lex, BC_TOK_KW_BOOL);
                 } else if (BC_STRV_EQ_LIT(data, "tup")) {
-                    tok->kind = BC_TOK_KW_TUP;
+                    return _kind(*lex, BC_TOK_KW_TUP);
                 } else if (BC_STRV_EQ_LIT(data, "unit")) {
-                    tok->kind = BC_TOK_KW_UNIT;
+                    return _kind(*lex, BC_TOK_KW_UNIT);
                 } else if (BC_STRV_EQ_LIT(data, "import")) {
-                    tok->kind = BC_TOK_KW_IMPORT;
+                    return _kind(*lex, BC_TOK_KW_IMPORT);
                 } else if (BC_STRV_EQ_LIT(data, "export")) {
-                    tok->kind = BC_TOK_KW_EXPORT;
+                    return _kind(*lex, BC_TOK_KW_EXPORT);
                 } else if (BC_STRV_EQ_LIT(data, "root")) {
-                    tok->kind = BC_TOK_KW_ROOT;
+                    return _kind(*lex, BC_TOK_KW_ROOT);
                 } else if (BC_STRV_EQ_LIT(data, "super")) {
-                    tok->kind = BC_TOK_KW_SUPER;
+                    return _kind(*lex, BC_TOK_KW_SUPER);
                 } else if (BC_STRV_EQ_LIT(data, "as")) {
-                    tok->kind = BC_TOK_KW_AS;
+                    return _kind(*lex, BC_TOK_KW_AS);
                 } else if (BC_STRV_EQ_LIT(data, "try_as")) {
-                    tok->kind = BC_TOK_KW_TRYAS;
+                    return _kind(*lex, BC_TOK_KW_TRYAS);
                 } else if (BC_STRV_EQ_LIT(data, "struct")) {
-                    tok->kind = BC_TOK_KW_STRUCT;
+                    return _kind(*lex, BC_TOK_KW_STRUCT);
                 } else if (BC_STRV_EQ_LIT(data, "enum")) {
-                    tok->kind = BC_TOK_KW_ENUM;
+                    return _kind(*lex, BC_TOK_KW_ENUM);
                 } else if (BC_STRV_EQ_LIT(data, "func")) {
-                    tok->kind = BC_TOK_KW_FUNC;
+                    return _kind(*lex, BC_TOK_KW_FUNC);
                 } else if (BC_STRV_EQ_LIT(data, "type")) {
-                    tok->kind = BC_TOK_KW_TYPE;
+                    return _kind(*lex, BC_TOK_KW_TYPE);
                 } else if (BC_STRV_EQ_LIT(data, "defer")) {
-                    tok->kind = BC_TOK_KW_DEFER;
+                    return _kind(*lex, BC_TOK_KW_DEFER);
                 } else if (BC_STRV_EQ_LIT(data, "let")) {
-                    tok->kind = BC_TOK_KW_LET;
+                    return _kind(*lex, BC_TOK_KW_LET);
                 } else if (BC_STRV_EQ_LIT(data, "if")) {
-                    tok->kind = BC_TOK_KW_IF;
+                    return _kind(*lex, BC_TOK_KW_IF);
                 } else if (BC_STRV_EQ_LIT(data, "elif")) {
-                    tok->kind = BC_TOK_KW_ELIF;
+                    return _kind(*lex, BC_TOK_KW_ELIF);
                 } else if (BC_STRV_EQ_LIT(data, "else")) {
-                    tok->kind = BC_TOK_KW_ELSE;
+                    return _kind(*lex, BC_TOK_KW_ELSE);
                 } else if (BC_STRV_EQ_LIT(data, "loop")) {
-                    tok->kind = BC_TOK_KW_LOOP;
+                    return _kind(*lex, BC_TOK_KW_LOOP);
                 } else if (BC_STRV_EQ_LIT(data, "for")) {
-                    tok->kind = BC_TOK_KW_FOR;
+                    return _kind(*lex, BC_TOK_KW_FOR);
                 } else if (BC_STRV_EQ_LIT(data, "while")) {
-                    tok->kind = BC_TOK_KW_WHILE;
+                    return _kind(*lex, BC_TOK_KW_WHILE);
                 } else if (BC_STRV_EQ_LIT(data, "switch")) {
-                    tok->kind = BC_TOK_KW_SWITCH;
+                    return _kind(*lex, BC_TOK_KW_SWITCH);
                 } else if (BC_STRV_EQ_LIT(data, "default")) {
-                    tok->kind = BC_TOK_KW_DEFAULT;
+                    return _kind(*lex, BC_TOK_KW_DEFAULT);
                 } else if (BC_STRV_EQ_LIT(data, "break")) {
-                    tok->kind = BC_TOK_KW_BREAK;
+                    return _kind(*lex, BC_TOK_KW_BREAK);
                 } else if (BC_STRV_EQ_LIT(data, "continue")) {
-                    tok->kind = BC_TOK_KW_CONTINUE;
+                    return _kind(*lex, BC_TOK_KW_CONTINUE);
                 } else if (BC_STRV_EQ_LIT(data, "return")) {
-                    tok->kind = BC_TOK_KW_RETURN;
+                    return _kind(*lex, BC_TOK_KW_RETURN);
                 } else if (BC_STRV_EQ_LIT(data, "true")) {
-                    tok->kind = BC_TOK_LIT_BOOLEAN;
-                    tok->val.boolean = true;
+                    return (struct bc_tok) {
+                        .loc = _tok_loc(*lex),
+                        .kind = BC_TOK_LIT_BOOLEAN,
+                        .val = { .boolean = true },
+                    };
                 } else if (BC_STRV_EQ_LIT(data, "false")) {
-                    tok->kind = BC_TOK_LIT_BOOLEAN;
-                    tok->val.boolean = false;
+                    return (struct bc_tok) {
+                        .loc = _tok_loc(*lex),
+                        .kind = BC_TOK_LIT_BOOLEAN,
+                        .val = { .boolean = false },
+                    };
                 } else {
-                    tok->kind = BC_TOK_IDENT;
-                    tok->val.ident = data;
+                    return (struct bc_tok) {
+                        .loc = _tok_loc(*lex),
+                        .kind = BC_TOK_IDENT,
+                        .val = { .ident = data },
+                    };
                 }
-
-                _RET_OK();
             }
 
             // Special symbol tokens, comments, negative numbers
+            enum bc_tok_kind sym_kind = 0;
             if (_is_sep(lex->c)) {
                 switch (lex->c) {
                 case L'(':
-                    tok->kind = BC_TOK_LPAREN;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_LPAREN;
+                    _nextc(lex);
+                    break;
                 case L')':
-                    tok->kind = BC_TOK_RPAREN;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_RPAREN;
+                    _nextc(lex);
+                    break;
                 case L'{':
-                    tok->kind = BC_TOK_LBRACE;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_LBRACE;
+                    _nextc(lex);
+                    break;
                 case L'}':
-                    tok->kind = BC_TOK_RBRACE;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_RBRACE;
+                    _nextc(lex);
+                    break;
                 case L'[':
-                    tok->kind = BC_TOK_LBRACKET;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_LBRACKET;
+                    _nextc(lex);
+                    break;
                 case L']':
-                    tok->kind = BC_TOK_RBRACKET;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_RBRACKET;
+                    _nextc(lex);
+                    break;
                 case L'<':
-                    tok->kind = BC_TOK_LANGLE;
-                    _NEXTC();
+                    sym_kind = BC_TOK_LANGLE;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_LANEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_LANEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'<' && !lex->eof) {
-                        tok->kind = BC_TOK_LANLAN;
-                        _NEXTC();
+                        sym_kind = BC_TOK_LANLAN;
+                        _nextc(lex);
                         if (lex->c == L'=' && !lex->eof) {
-                            tok->kind = BC_TOK_LANLANEQ;
-                            _NEXTC();
-                            _RET_OK();
+                            sym_kind = BC_TOK_LANLANEQ;
+                            _nextc(lex);
+                            break;
                         }
-                        _RET_OK();
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'>':
-                    tok->kind = BC_TOK_RANGLE;
-                    _NEXTC();
+                    sym_kind = BC_TOK_RANGLE;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_RANEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_RANEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'>' && !lex->eof) {
-                        tok->kind = BC_TOK_RANRAN;
-                        _NEXTC();
+                        sym_kind = BC_TOK_RANRAN;
+                        _nextc(lex);
                         if (lex->c == L'=' && !lex->eof) {
-                            tok->kind = BC_TOK_RANRANEQ;
-                            _NEXTC();
-                            _RET_OK();
+                            sym_kind = BC_TOK_RANRANEQ;
+                            _nextc(lex);
+                            break;
                         }
-                        _RET_OK();
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'!':
-                    tok->kind = BC_TOK_EXCLAM;
-                    _NEXTC();
+                    sym_kind = BC_TOK_EXCLAM;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_EXCLEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_EXCLEQ;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L':':
-                    tok->kind = BC_TOK_COLON;
-                    _NEXTC();
+                    sym_kind = BC_TOK_COLON;
+                    _nextc(lex);
                     if (lex->c == L':' && !lex->eof) {
-                        tok->kind = BC_TOK_COLCOL;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_COLCOL;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'.':
-                    tok->kind = BC_TOK_DOT;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_DOT;
+                    _nextc(lex);
+                    break;
                 case L',':
-                    tok->kind = BC_TOK_COMMA;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_COMMA;
+                    _nextc(lex);
+                    break;
                 case L';':
-                    tok->kind = BC_TOK_SEMICOLON;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_SEMICOLON;
+                    _nextc(lex);
+                    break;
                 case L'=':
-                    tok->kind = BC_TOK_EQ;
-                    _NEXTC();
+                    sym_kind = BC_TOK_EQ;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_EQEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_EQEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'>' && !lex->eof) {
-                        tok->kind = BC_TOK_EQRAN;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_EQRAN;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'+':
-                    tok->kind = BC_TOK_PLUS;
-                    _NEXTC();
+                    sym_kind = BC_TOK_PLUS;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_PLUSEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_PLUSEQ;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'-':
-                    tok->kind = BC_TOK_DASH;
-                    _NEXTC();
+                    sym_kind = BC_TOK_DASH;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_DASHEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_DASHEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'>' && !lex->eof) {
-                        tok->kind = BC_TOK_DASHRAN;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_DASHRAN;
+                        _nextc(lex);
+                        break;
                     }
                     // Negative floating, integer, and byte
-                    num_res = _lex_num(lex, tok, loc, true);
-                    if (num_res == BC_LEX_OK) {
-                        return BC_LEX_OK;
+                    struct bc_tok num_tok = _lex_num(lex, true);
+                    if (num_tok.kind != BC_TOK_NONE) {
+                        return num_tok;
                     }
-                    if (num_res == BC_LEX_ERR) {
-                        return BC_LEX_ERR;
-                    }
-                    _RET_OK();
+                    break;
                 case L'*':
-                    tok->kind = BC_TOK_STAR;
-                    _NEXTC();
+                    sym_kind = BC_TOK_STAR;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_STAREQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_STAREQ;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'/':
-                    tok->kind = BC_TOK_SLASH;
-                    _NEXTC();
+                    sym_kind = BC_TOK_SLASH;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_SLASHEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_SLASHEQ;
+                        _nextc(lex);
+                        break;
                     }
                     // Skip comments
                     if (lex->c == L'/') {
                         while (!lex->eof && lex->c != L'\n') {
-                            _NEXTC();
+                            _nextc(lex);
                         }
                         continue;
                     }
-                    _RET_OK();
+                    break;
                 case L'&':
-                    tok->kind = BC_TOK_AMP;
-                    _NEXTC();
+                    sym_kind = BC_TOK_AMP;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_AMPEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_AMPEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'&' && !lex->eof) {
-                        tok->kind = BC_TOK_AMPAMP;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_AMPAMP;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'|':
-                    tok->kind = BC_TOK_PIPE;
-                    _NEXTC();
+                    sym_kind = BC_TOK_PIPE;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_PIPEEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_PIPEEQ;
+                        _nextc(lex);
+                        break;
                     }
                     if (lex->c == L'|' && !lex->eof) {
-                        tok->kind = BC_TOK_PIPEPIPE;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_PIPEPIPE;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'^':
-                    tok->kind = BC_TOK_CARET;
-                    _NEXTC();
+                    sym_kind = BC_TOK_CARET;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_CARETEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_CARETEQ;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'~':
-                    tok->kind = BC_TOK_TILDE;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_TILDE;
+                    _nextc(lex);
+                    break;
                 case L'%':
-                    tok->kind = BC_TOK_PERCENT;
-                    _NEXTC();
+                    sym_kind = BC_TOK_PERCENT;
+                    _nextc(lex);
                     if (lex->c == L'=' && !lex->eof) {
-                        tok->kind = BC_TOK_PERCENTEQ;
-                        _NEXTC();
-                        _RET_OK();
+                        sym_kind = BC_TOK_PERCENTEQ;
+                        _nextc(lex);
+                        break;
                     }
-                    _RET_OK();
+                    break;
                 case L'?':
-                    tok->kind = BC_TOK_QUESTION;
-                    _NEXTC();
-                    _RET_OK();
+                    sym_kind = BC_TOK_QUESTION;
+                    _nextc(lex);
+                    break;
+                default:
+                    BC_ASSERT_UNREACHABLE();
                 }
-                BC_ASSERT_UNREACHABLE();
+                return _kind(*lex, sym_kind);
             }
 
             if (bc_uprop_is_print(lex->c)) {
-                lex->err.kind = BC_LEX_ERR_UNEXPECTED_CHARACTER;
-                lex->err.val.unexpected_character = lex->c;
+                return _errv(*lex, BC_LEX_ERR_UNEXPECTED_CHARACTER,
+                    (union bc_lex_err_val) { .unexpected_character = lex->c });
             } else {
-                lex->err.kind = BC_LEX_ERR_NON_PRINTABLE_CHARACTER;
+                return _err(*lex, BC_LEX_ERR_NON_PRINTABLE_CHARACTER);
             }
-            _ERROR_NK();
         } else {
-            return BC_LEX_EMPTY;
+            return _kind(*lex, BC_TOK_EOF);
         }
     }
-    return BC_LEX_EMPTY;
+    return _kind(*lex, BC_TOK_EOF);
 }

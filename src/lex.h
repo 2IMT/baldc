@@ -9,6 +9,11 @@
 #include "mem.h"
 
 enum bc_tok_kind {
+    // Special
+    BC_TOK_ERR = -3,
+    BC_TOK_EOF = -2,
+    BC_TOK_NONE = -1,
+    // Identifier
     BC_TOK_IDENT,
     // Literals
     BC_TOK_LIT_STRING,
@@ -54,78 +59,53 @@ enum bc_tok_kind {
     BC_TOK_KW_CONTINUE,
     BC_TOK_KW_RETURN,
     // Symbols
-    BC_TOK_LPAREN,    // (
-    BC_TOK_RPAREN,    // )
-    BC_TOK_LBRACE,    // {
-    BC_TOK_RBRACE,    // }
-    BC_TOK_LBRACKET,  // [
-    BC_TOK_RBRACKET,  // ]
-    BC_TOK_LANGLE,    // <
-    BC_TOK_LANEQ,     // <=
-    BC_TOK_LANLAN,    // <<
-    BC_TOK_LANLANEQ,  // <<=
-    BC_TOK_RANGLE,    // >
-    BC_TOK_RANEQ,     // >=
-    BC_TOK_RANRAN,    // >>
-    BC_TOK_RANRANEQ,  // >>=
-    BC_TOK_EXCLAM,    // !
-    BC_TOK_EXCLEQ,    // !=
-    BC_TOK_COLON,     // :
-    BC_TOK_COLCOL,    // ::
-    BC_TOK_DOT,       // .
-    BC_TOK_COMMA,     // ,
+    BC_TOK_LPAREN, // (
+    BC_TOK_RPAREN, // )
+    BC_TOK_LBRACE, // {
+    BC_TOK_RBRACE, // }
+    BC_TOK_LBRACKET, // [
+    BC_TOK_RBRACKET, // ]
+    BC_TOK_LANGLE, // <
+    BC_TOK_LANEQ, // <=
+    BC_TOK_LANLAN, // <<
+    BC_TOK_LANLANEQ, // <<=
+    BC_TOK_RANGLE, // >
+    BC_TOK_RANEQ, // >=
+    BC_TOK_RANRAN, // >>
+    BC_TOK_RANRANEQ, // >>=
+    BC_TOK_EXCLAM, // !
+    BC_TOK_EXCLEQ, // !=
+    BC_TOK_COLON, // :
+    BC_TOK_COLCOL, // ::
+    BC_TOK_DOT, // .
+    BC_TOK_COMMA, // ,
     BC_TOK_SEMICOLON, // ;
-    BC_TOK_EQ,        // =
-    BC_TOK_EQEQ,      // ==
-    BC_TOK_EQRAN,     // =>
-    BC_TOK_PLUS,      // +
-    BC_TOK_PLUSEQ,    // +=
-    BC_TOK_DASH,      // -
-    BC_TOK_DASHEQ,    // -=
-    BC_TOK_DASHRAN,   // ->
-    BC_TOK_STAR,      // *
-    BC_TOK_STAREQ,    // *=
-    BC_TOK_SLASH,     // /
-    BC_TOK_SLASHEQ,   // /=
-    BC_TOK_AMP,       // &
-    BC_TOK_AMPEQ,     // &=
-    BC_TOK_AMPAMP,    // &&
-    BC_TOK_PIPE,      // |
-    BC_TOK_PIPEEQ,    // |=
-    BC_TOK_PIPEPIPE,  // ||
-    BC_TOK_CARET,     // ^
-    BC_TOK_CARETEQ,   // ^=
-    BC_TOK_TILDE,     // ~
-    BC_TOK_PERCENT,   // %
+    BC_TOK_EQ, // =
+    BC_TOK_EQEQ, // ==
+    BC_TOK_EQRAN, // =>
+    BC_TOK_PLUS, // +
+    BC_TOK_PLUSEQ, // +=
+    BC_TOK_DASH, // -
+    BC_TOK_DASHEQ, // -=
+    BC_TOK_DASHRAN, // ->
+    BC_TOK_STAR, // *
+    BC_TOK_STAREQ, // *=
+    BC_TOK_SLASH, // /
+    BC_TOK_SLASHEQ, // /=
+    BC_TOK_AMP, // &
+    BC_TOK_AMPEQ, // &=
+    BC_TOK_AMPAMP, // &&
+    BC_TOK_PIPE, // |
+    BC_TOK_PIPEEQ, // |=
+    BC_TOK_PIPEPIPE, // ||
+    BC_TOK_CARET, // ^
+    BC_TOK_CARETEQ, // ^=
+    BC_TOK_TILDE, // ~
+    BC_TOK_PERCENT, // %
     BC_TOK_PERCENTEQ, // %=
-    BC_TOK_QUESTION,  // ?
+    BC_TOK_QUESTION, // ?
     // Token count
     BC_TOK_COUNT,
-};
-
-union bc_tok_val {
-    struct bc_strv ident;
-    struct bc_strv string;
-    struct bc_strv character;
-    struct bc_strv integer;
-    struct bc_strv byte;
-    struct bc_strv floating;
-    bool boolean;
-};
-
-struct bc_tok {
-    enum bc_tok_kind kind;
-    union bc_tok_val val;
-};
-
-struct bc_lex_pos {
-    size_t l;
-    size_t c;
-};
-
-struct bc_lex_loc {
-    struct bc_lex_pos s;
-    struct bc_lex_pos e;
 };
 
 enum bc_lex_err_kind {
@@ -144,6 +124,16 @@ enum bc_lex_err_kind {
     BC_LEX_ERR_NEGATIVE_BYTE_LITERAL,
 };
 
+struct bc_lex_pos {
+    size_t l;
+    size_t c;
+};
+
+struct bc_lex_loc {
+    struct bc_lex_pos s;
+    struct bc_lex_pos e;
+};
+
 union bc_lex_err_val {
     struct bc_lex_pos unterminated_string;
     struct bc_lex_pos unterminated_character;
@@ -159,6 +149,23 @@ struct bc_lex_err {
     struct bc_lex_pos pos;
 };
 
+union bc_tok_val {
+    struct bc_lex_err err;
+    struct bc_strv ident;
+    struct bc_strv string;
+    struct bc_strv character;
+    struct bc_strv integer;
+    struct bc_strv byte;
+    struct bc_strv floating;
+    bool boolean;
+};
+
+struct bc_tok {
+    struct bc_lex_loc loc;
+    enum bc_tok_kind kind;
+    union bc_tok_val val;
+};
+
 struct bc_lex {
     struct bc_mem_arena escaped_strings_arena;
     struct bc_strv src;
@@ -170,13 +177,6 @@ struct bc_lex {
     int32_t c;
     bool init;
     bool eof;
-    struct bc_lex_err err;
-};
-
-enum bc_lex_res {
-    BC_LEX_ERR = -1,
-    BC_LEX_OK,
-    BC_LEX_EMPTY,
 };
 
 struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e);
@@ -185,7 +185,6 @@ struct bc_lex bc_lex_new(struct bc_strv src);
 
 void bc_lex_free(struct bc_lex lex);
 
-enum bc_lex_res bc_lex_next(
-    struct bc_lex* lex, struct bc_tok* tok, struct bc_lex_loc* loc);
+struct bc_tok bc_lex_next(struct bc_lex* lex);
 
 #endif

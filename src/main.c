@@ -8,71 +8,23 @@
 #include "str.h"
 #include "print.h"
 
-static void _print_lex_err(struct bc_lex_err err, const char* src) {
-    switch (err.kind) {
-    case BC_LEX_ERR_INVALID_UTF8_SEQUENCE: {
-        bc_eprintf("invalid UTF-8 sequence$n");
-
-    } break;
-    case BC_LEX_ERR_UNTERMINATED_STRING: {
-        struct bc_lex_pos pos = err.val.unterminated_string;
-        bc_eprintf("unterminated string literal (starts at $s:$z:$z)$n", src,
-            pos.l, pos.c);
-    } break;
-    case BC_LEX_ERR_UNTERMINATED_CHARACTER: {
-        struct bc_lex_pos pos = err.val.unterminated_character;
-        bc_eprintf("unterminated character literal (starts at $s:$z:$z)$n", src,
-            pos.l, pos.c);
-    } break;
-    case BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER: {
-        bc_eprintf("unexpected character `$C` in number literal$n",
-            err.val.unexpected_character_in_number);
-    } break;
-    case BC_LEX_ERR_UNEXPECTED_CHARACTER: {
-        bc_eprintf("unexpected character `$C`$n", err.val.unexpected_character);
-    } break;
-    case BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE: {
-        struct bc_lex_pos pos = err.val.invalid_escape_sequence;
-        bc_eprintf("invalid escape sequence at $z:$z$n", pos.l, pos.c);
-    } break;
-    case BC_LEX_ERR_MULTICHARACTER: {
-        bc_eprintf("character literal contains more than one character$n");
-    } break;
-    case BC_LEX_ERR_EMPTY_CHARACTER: {
-        bc_eprintf("character literal is empty$n");
-    } break;
-    case BC_LEX_ERR_NON_PRINTABLE_CHARACTER: {
-        bc_eprintf("non-printable character encountered$n");
-    } break;
-    case BC_LEX_ERR_INVALID_INTEGER_PREFIX: {
-        bc_eprintf(
-            "invalid integer prefix `$C`$n", err.val.invalid_integer_prefix);
-    } break;
-    case BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX: {
-        bc_eprintf("no digit after prefix in integer literal$n");
-    } break;
-    case BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING: {
-        bc_eprintf("byte postfix in floating point literal$n");
-    } break;
-    case BC_LEX_ERR_NEGATIVE_BYTE_LITERAL: {
-        bc_eprintf("negative byte literal$n");
-    } break;
-    }
-}
-
-static void _print_parse_err(struct bc_parse_err err, const char* src) {
-    switch (err.kind) {
-    case BC_PARSE_ERR_LEX: {
-        _print_lex_err(err.val.lex, src);
-    } break;
-    }
-}
-
 static void _print_tok(struct bc_tok tok) {
     const char* n = NULL;
     struct bc_strv v;
     char delim = '\0';
     switch (tok.kind) {
+    case BC_TOK_ERR:
+        n = "err";
+        v = BC_STRV_FROM_LIT("err");
+        break;
+    case BC_TOK_EOF:
+        n = "eof";
+        v = BC_STRV_FROM_LIT("eof");
+        break;
+    case BC_TOK_NONE:
+        n = "none";
+        v = BC_STRV_FROM_LIT("none");
+        break;
     case BC_TOK_IDENT:
         n = "ident";
         v = tok.val.ident;
@@ -297,7 +249,7 @@ static void _print_tok(struct bc_tok tok) {
         break;
     case BC_TOK_COLON:
         n = "sym";
-        v = BC_STRV_FROM_LIT(";");
+        v = BC_STRV_FROM_LIT(":");
         break;
     case BC_TOK_COLCOL:
         n = "sym";
@@ -420,6 +372,66 @@ static void _print_tok(struct bc_tok tok) {
         delim_str);
 }
 
+static void _print_lex_err(struct bc_lex_err err, const char* src) {
+    switch (err.kind) {
+    case BC_LEX_ERR_INVALID_UTF8_SEQUENCE: {
+        bc_eprintf("invalid UTF-8 sequence$n");
+
+    } break;
+    case BC_LEX_ERR_UNTERMINATED_STRING: {
+        struct bc_lex_pos pos = err.val.unterminated_string;
+        bc_eprintf("unterminated string literal (starts at $s:$z:$z)$n", src,
+            pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_UNTERMINATED_CHARACTER: {
+        struct bc_lex_pos pos = err.val.unterminated_character;
+        bc_eprintf("unterminated character literal (starts at $s:$z:$z)$n", src,
+            pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_UNEXPECTED_CHARACTER_IN_NUMBER: {
+        bc_eprintf("unexpected character `$C` in number literal$n",
+            err.val.unexpected_character_in_number);
+    } break;
+    case BC_LEX_ERR_UNEXPECTED_CHARACTER: {
+        bc_eprintf("unexpected character `$C`$n", err.val.unexpected_character);
+    } break;
+    case BC_LEX_ERR_INVALID_ESCAPE_SEQUENCE: {
+        struct bc_lex_pos pos = err.val.invalid_escape_sequence;
+        bc_eprintf("invalid escape sequence at $z:$z$n", pos.l, pos.c);
+    } break;
+    case BC_LEX_ERR_MULTICHARACTER: {
+        bc_eprintf("character literal contains more than one character$n");
+    } break;
+    case BC_LEX_ERR_EMPTY_CHARACTER: {
+        bc_eprintf("character literal is empty$n");
+    } break;
+    case BC_LEX_ERR_NON_PRINTABLE_CHARACTER: {
+        bc_eprintf("non-printable character encountered$n");
+    } break;
+    case BC_LEX_ERR_INVALID_INTEGER_PREFIX: {
+        bc_eprintf(
+            "invalid integer prefix `$C`$n", err.val.invalid_integer_prefix);
+    } break;
+    case BC_LEX_ERR_NO_DIGIT_AFTER_PREFIX: {
+        bc_eprintf("no digit after prefix in integer literal$n");
+    } break;
+    case BC_LEX_ERR_BYTE_POSTFIX_IN_FLOATING: {
+        bc_eprintf("byte postfix in floating point literal$n");
+    } break;
+    case BC_LEX_ERR_NEGATIVE_BYTE_LITERAL: {
+        bc_eprintf("negative byte literal$n");
+    } break;
+    }
+}
+
+static void _print_parse_err(struct bc_parse_err err, const char* src) {
+    switch (err.kind) {
+    case BC_PARSE_ERR_LEX: {
+        _print_lex_err(err.val.lex, src);
+    } break;
+    }
+}
+
 static void _err_callback(struct bc_parse_err err, void* user_data) {
     const char* src = (char*)user_data;
     struct bc_lex_loc loc = err.loc;
@@ -427,9 +439,9 @@ static void _err_callback(struct bc_parse_err err, void* user_data) {
     _print_parse_err(err, src);
 }
 
-static void _tok_callback(
-    struct bc_tok tok, struct bc_lex_loc loc, void* user_data) {
+static void _tok_callback(struct bc_tok tok, void* user_data) {
     const char* src = (char*)user_data;
+    struct bc_lex_loc loc = tok.loc;
     bc_printf("$s:$z:$z-$z:$z:\t", src, loc.s.l, loc.s.c, loc.e.l, loc.e.c);
     _print_tok(tok);
 }
