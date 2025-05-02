@@ -449,6 +449,8 @@ static void _tok_callback(struct bc_tok tok, void* user_data) {
 int main(int argc, char** argv) {
     setlocale(LC_ALL, "");
 
+    bc_printf("baldc version $s$n", BALDC_VERSION);
+
     if (argc < 2) {
         bc_eprintf("error: no source file provided$n");
         return 1;

@@ -5,11 +5,15 @@ BALDC_FSANITIZE_ON_DEBUG ?= 0
 CC ?= gcc
 STRIP ?= strip
 
-CFLAGS := -Wall -Wextra -Wpedantic -MMD -MP
+BALDC_VERSION = 0.1.0
+
+CFLAGS := -Wall -Wextra -Wpedantic -MMD -MP -DBALDC_VERSION="\"$(BALDC_VERSION)\""
 
 SRC_DIR := src
 BUILD_DIR := build
 BIN := baldc
+DIST_DIR := dist
+DIST := $(DIST_DIR)/$(BIN)-$(BALDC_VERSION)
 
 TEST_DIR := test
 TEST_TOOLS_DIR := $(TEST_DIR)/tools
@@ -59,7 +63,7 @@ $(BUILD_DIR)/$(BIN): $(OBJ_FILES)
 
 -include $(DEP_FILES)
 
-.PHONY: clean tests test
+.PHONY: clean tests test dist
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -90,3 +94,10 @@ test: tests
 	$(TEST_EXECUTOR) $(TEST_EXECS)
 
 -include $(TEST_DEP_FILES)
+
+dist:
+	mkdir -p $(DIST)
+	cp -r LICENSE README.md Makefile src test $(DIST)
+	tar -cf $(DIST).tar $(DIST)
+	gzip $(DIST).tar
+	rm -rf $(DIST)
