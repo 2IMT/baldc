@@ -131,6 +131,10 @@ static void _print_tok(struct bc_tok tok) {
         n = "keyword";
         v = BC_STRV_FROM_LIT("func");
         break;
+    case BC_TOK_KW_CONST:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("const");
+        break;
     case BC_TOK_KW_DEFER:
         n = "keyword";
         v = BC_STRV_FROM_LIT("defer");

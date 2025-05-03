@@ -473,7 +473,7 @@ TEST_BEGIN(test_keywords) {
     _CREATE_LEXER("string char int byte float\n"
                   "bool tup unit import export\n"
                   "root super as try_as struct\n"
-                  "enum func type defer let if\n"
+                  "enum func type const defer let if\n"
                   "elif else loop for while\n"
                   "switch default break\n"
                   "continue return\n");
@@ -517,12 +517,14 @@ TEST_BEGIN(test_keywords) {
     _ASSERT_LOCATION(4, 6, 4, 10);
     _NEXT_KIND(BC_TOK_KW_TYPE);
     _ASSERT_LOCATION(4, 11, 4, 15);
-    _NEXT_KIND(BC_TOK_KW_DEFER);
+    _NEXT_KIND(BC_TOK_KW_CONST);
     _ASSERT_LOCATION(4, 16, 4, 21);
+    _NEXT_KIND(BC_TOK_KW_DEFER);
+    _ASSERT_LOCATION(4, 22, 4, 27);
     _NEXT_KIND(BC_TOK_KW_LET);
-    _ASSERT_LOCATION(4, 22, 4, 25);
+    _ASSERT_LOCATION(4, 28, 4, 31);
     _NEXT_KIND(BC_TOK_KW_IF);
-    _ASSERT_LOCATION(4, 26, 4, 28);
+    _ASSERT_LOCATION(4, 32, 4, 34);
 
     _NEXT_KIND(BC_TOK_KW_ELIF);
     _ASSERT_LOCATION(5, 1, 5, 5);

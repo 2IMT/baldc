@@ -607,6 +607,8 @@ struct bc_tok bc_lex_next(struct bc_lex* lex) {
                     return _kind(*lex, BC_TOK_KW_FUNC);
                 } else if (BC_STRV_EQ_LIT(data, "type")) {
                     return _kind(*lex, BC_TOK_KW_TYPE);
+                } else if (BC_STRV_EQ_LIT(data, "const")) {
+                    return _kind(*lex, BC_TOK_KW_CONST);
                 } else if (BC_STRV_EQ_LIT(data, "defer")) {
                     return _kind(*lex, BC_TOK_KW_DEFER);
                 } else if (BC_STRV_EQ_LIT(data, "let")) {

@@ -39,11 +39,12 @@ enum bc_tok_kind {
     // Casting
     BC_TOK_KW_AS,
     BC_TOK_KW_TRYAS,
-    // Types
+    // Declarations
     BC_TOK_KW_STRUCT,
     BC_TOK_KW_ENUM,
     BC_TOK_KW_FUNC,
     BC_TOK_KW_TYPE,
+    BC_TOK_KW_CONST,
     // Statements
     BC_TOK_KW_DEFER,
     BC_TOK_KW_LET,
