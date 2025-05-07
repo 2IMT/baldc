@@ -381,10 +381,10 @@ static struct bc_tok _lex_string(struct bc_lex* lex) {
         union bc_tok_val val;
         if (is_char) {
             kind = BC_TOK_LIT_CHARACTER;
-            val.character = escaped_data;
+            val.literal = escaped_data;
         } else {
             kind = BC_TOK_LIT_STRING;
-            val.string = escaped_data;
+            val.literal = escaped_data;
         }
 
         return (struct bc_tok) {
@@ -428,7 +428,7 @@ static struct bc_tok _lex_num(struct bc_lex* lex, bool negative) {
                     return (struct bc_tok) {
                         .loc = _tok_loc(*lex),
                         .kind = BC_TOK_LIT_INTEGER,
-                        .val = { .integer = data },
+                        .val = { .literal = data },
                     };
                 }
                 struct bc_tok err =
@@ -513,13 +513,13 @@ static struct bc_tok _lex_num(struct bc_lex* lex, bool negative) {
         union bc_tok_val val;
         if (has_dot) {
             kind = BC_TOK_LIT_FLOATING;
-            val.floating = data;
+            val.literal = data;
         } else if (has_byte_postfix) {
             kind = BC_TOK_LIT_BYTE;
-            val.byte = data;
+            val.literal = data;
         } else {
             kind = BC_TOK_LIT_INTEGER;
-            val.integer = data;
+            val.literal = data;
         }
         return (struct bc_tok) {
             .loc = _tok_loc(*lex),
@@ -639,13 +639,13 @@ struct bc_tok bc_lex_next(struct bc_lex* lex) {
                     return (struct bc_tok) {
                         .loc = _tok_loc(*lex),
                         .kind = BC_TOK_LIT_BOOLEAN,
-                        .val = { .boolean = true },
+                        .val = { .literal = data },
                     };
                 } else if (BC_STRV_EQ_LIT(data, "false")) {
                     return (struct bc_tok) {
                         .loc = _tok_loc(*lex),
                         .kind = BC_TOK_LIT_BOOLEAN,
-                        .val = { .boolean = false },
+                        .val = { .literal = data },
                     };
                 } else {
                     return (struct bc_tok) {

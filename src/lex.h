@@ -153,12 +153,7 @@ struct bc_lex_err {
 union bc_tok_val {
     struct bc_lex_err err;
     struct bc_strv ident;
-    struct bc_strv string;
-    struct bc_strv character;
-    struct bc_strv integer;
-    struct bc_strv byte;
-    struct bc_strv floating;
-    bool boolean;
+    struct bc_strv literal;
 };
 
 struct bc_tok {

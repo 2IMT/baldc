@@ -31,33 +31,29 @@ static void _print_tok(struct bc_tok tok) {
         break;
     case BC_TOK_LIT_STRING:
         n = "lit s";
-        v = tok.val.string;
+        v = tok.val.literal;
         delim = '"';
         break;
     case BC_TOK_LIT_CHARACTER:
         n = "lit c";
-        v = tok.val.character;
+        v = tok.val.literal;
         delim = '\'';
         break;
     case BC_TOK_LIT_INTEGER:
         n = "lit i";
-        v = tok.val.integer;
+        v = tok.val.literal;
         break;
     case BC_TOK_LIT_BYTE:
         n = "lit bt";
-        v = tok.val.byte;
+        v = tok.val.literal;
         break;
     case BC_TOK_LIT_FLOATING:
         n = "lit f";
-        v = tok.val.floating;
+        v = tok.val.literal;
         break;
     case BC_TOK_LIT_BOOLEAN:
         n = "lit b";
-        if (tok.val.boolean) {
-            v = BC_STRV_FROM_LIT("true");
-        } else {
-            v = BC_STRV_FROM_LIT("false");
-        }
+        v = tok.val.literal;
         break;
     case BC_TOK_KW_STRING:
         n = "keyword";
