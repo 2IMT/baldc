@@ -23,6 +23,7 @@ enum bc_tok_kind {
     BC_TOK_LIT_FLOATING,
     BC_TOK_LIT_BOOLEAN,
     // Types
+    BC_TOK_KW_NULL,
     BC_TOK_KW_STRING,
     BC_TOK_KW_CHAR,
     BC_TOK_KW_INT,

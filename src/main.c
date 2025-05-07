@@ -55,6 +55,10 @@ static void _print_tok(struct bc_tok tok) {
         n = "lit b";
         v = tok.val.literal;
         break;
+    case BC_TOK_KW_NULL:
+        n = "keyword";
+        v = BC_STRV_FROM_LIT("string");
+        break;
     case BC_TOK_KW_STRING:
         n = "keyword";
         v = BC_STRV_FROM_LIT("string");

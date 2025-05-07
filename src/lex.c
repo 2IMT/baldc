@@ -571,7 +571,9 @@ struct bc_tok bc_lex_next(struct bc_lex* lex) {
                 struct bc_strv data =
                     bc_strv_from_range(lex->tok_begin, lex->src_ptr_prev);
 
-                if (BC_STRV_EQ_LIT(data, "string")) {
+                if (BC_STRV_EQ_LIT(data, "null")) {
+                    return _kind(*lex, BC_TOK_KW_NULL);
+                } else if (BC_STRV_EQ_LIT(data, "string")) {
                     return _kind(*lex, BC_TOK_KW_STRING);
                 } else if (BC_STRV_EQ_LIT(data, "char")) {
                     return _kind(*lex, BC_TOK_KW_CHAR);
