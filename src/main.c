@@ -433,6 +433,20 @@ static void _print_parse_err(struct bc_parse_err err, const char* src) {
     case BC_PARSE_ERR_LEX: {
         _print_lex_err(err.val.lex, src);
     } break;
+    case BC_PARSE_ERR_UNEXPECTED_TOKEN: {
+        bc_printf("unexpected token: ");
+        _print_tok(err.val.unexpected_token);
+    } break;
+    case BC_PARSE_ERR_EXPECTED_MULTIPLE:
+        bc_printf("expected ");
+        const char** items = err.val.expected_multiple.items;
+        size_t len = err.val.expected_multiple.len;
+        for (size_t i = 0; i < len; i++) {
+            bc_printf("$s ", items[i]);
+        }
+        bc_printf("got ");
+        _print_tok(err.val.expected_multiple.got);
+        break;
     }
 }
 
