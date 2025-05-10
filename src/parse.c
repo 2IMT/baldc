@@ -136,7 +136,7 @@ static bool _infix_bp(enum bc_tok_kind op, uint8_t* l, uint8_t* r) {
     }
 }
 
-void _nexttok(struct bc_parse* parse) {
+static void _nexttok(struct bc_parse* parse) {
     parse->tok = bc_lex_next(&parse->lex);
     if (parse->tok_callback != NULL) {
         parse->tok_callback(parse->tok, parse->tok_user_data);
