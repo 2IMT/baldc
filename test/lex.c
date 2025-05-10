@@ -38,31 +38,31 @@
 
 #define _ASSERT_IDENT_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_IDENT); \
-    TEST_ASSERT(bc_strv_eq_cstr(_tok.val.ident, value));
+    TEST_ASSERT(bc_strv_eq(_tok.val.ident, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_STRING_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_STRING); \
-    TEST_ASSERT(bc_strv_eq(_tok.val.string, BC_STRV_FROM_LIT(value)));
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_CHARACTER_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_CHARACTER); \
-    TEST_ASSERT(bc_strv_eq(_tok.val.character, BC_STRV_FROM_LIT(value)));
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_INTEGER_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_INTEGER); \
-    TEST_ASSERT(bc_strv_eq(_tok.val.integer, BC_STRV_FROM_LIT(value)));
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_BYTE_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_BYTE); \
-    TEST_ASSERT(bc_strv_eq(_tok.val.byte, BC_STRV_FROM_LIT(value)));
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_FLOATING_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_FLOATING); \
-    TEST_ASSERT(bc_strv_eq(_tok.val.floating, BC_STRV_FROM_LIT(value)));
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _ASSERT_BOOLEAN_VALUE(value) \
     TEST_ASSERT(_tok.kind == BC_TOK_LIT_BOOLEAN); \
-    TEST_ASSERT(_tok.val.boolean == value);
+    TEST_ASSERT(bc_strv_eq(_tok.val.literal, BC_STRV_FROM_LIT(value)));
 
 #define _NEXT_LOCATION(ls, cs, le, ce) \
     _NEXT(); \
@@ -458,9 +458,9 @@ TEST_BEGIN(test_numbers) {
 TEST_BEGIN(test_booleans) {
 
     _CREATE_LEXER(" true  false\n");
-    _NEXT_BOOLEAN_VALUE(true);
+    _NEXT_BOOLEAN_VALUE("true");
     _ASSERT_LOCATION(1, 2, 1, 6);
-    _NEXT_BOOLEAN_VALUE(false);
+    _NEXT_BOOLEAN_VALUE("false");
     _ASSERT_LOCATION(1, 8, 1, 13);
 
     _FREE_LEXER();
