@@ -139,6 +139,7 @@ void bc_ast_print_ident_list(
 void bc_ast_print_import(struct bc_ast_import v, uint32_t indent) {
     _indent(indent);
     bc_printf("import(");
+    bc_printf("super_count:$i,", v.super_count);
     bc_printf("is_glob:$s,", v.is_glob ? "true" : "false");
     bc_printf("is_root:$s,", v.is_root ? "true" : "false");
     bc_printf("is_renamed:$s", v.is_renamed ? "true" : "false");
