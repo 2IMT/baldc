@@ -176,6 +176,8 @@ struct bc_lex {
     bool eof;
 };
 
+struct bc_strv bc_tok_kind_to_strv(enum bc_tok_kind kind);
+
 struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e);
 
 struct bc_lex bc_lex_new(struct bc_strv src);
