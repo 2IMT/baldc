@@ -31,7 +31,7 @@ static bool _prefix_bp(enum bc_tok_kind op, uint8_t* r) {
     case BC_TOK_TILDE:
     case BC_TOK_AMP:
     case BC_TOK_STAR:
-        *r = 9;
+        *r = 23;
         return true;
     default:
         return false;
@@ -44,7 +44,7 @@ static bool _postfix_bp(enum bc_tok_kind op, uint8_t* l) {
     case BC_TOK_LBRACKET:
     case BC_TOK_KW_AS:
     case BC_TOK_KW_TRYAS:
-        *l = 11;
+        *l = 25;
         return true;
     default:
         return false;
@@ -127,8 +127,8 @@ static bool _infix_bp(enum bc_tok_kind op, uint8_t* l, uint8_t* r) {
     // Member access and paths
     case BC_TOK_DOT:
     case BC_TOK_COLCOL:
-        *l = 23;
-        *r = 24;
+        *l = 27;
+        *r = 28;
         return true;
 
     default:
