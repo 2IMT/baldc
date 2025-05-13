@@ -409,7 +409,7 @@ bool bc_parse_expression_bp(
             return false;
         }
         lhs.val.unop.operand = operand;
-    } else if (!bc_parse_literal(parse, &expr->val.literal)) {
+    } else if (!bc_parse_literal(parse, &lhs.val.literal)) {
         _ERR_EXPECTED_MULTIPLE("expression");
         return false;
     }
