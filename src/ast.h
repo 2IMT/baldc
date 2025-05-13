@@ -372,6 +372,10 @@ struct bc_ast_top_level_list {
     struct bc_ast_top_level_list* next;
 };
 
+struct bc_ast_module {
+    struct bc_ast_top_level_list* top_level_items;
+};
+
 void bc_ast_print_stmt(struct bc_ast_stmt v, uint32_t indent);
 
 void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent);
@@ -442,5 +446,7 @@ void bc_ast_print_top_level(struct bc_ast_top_level v, uint32_t indent);
 
 void bc_ast_print_top_level_list(
     const struct bc_ast_top_level_list* v, uint32_t indent);
+
+void bc_ast_print_module(struct bc_ast_module v, uint32_t indent);
 
 #endif

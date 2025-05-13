@@ -699,3 +699,12 @@ void bc_ast_print_top_level_list(
     _indent(indent);
     bc_printf("}");
 }
+
+void bc_ast_print_module(struct bc_ast_module v, uint32_t indent) {
+    _indent(indent);
+    bc_printf("module {$n");
+    bc_ast_print_top_level_list(v.top_level_items, indent + _I);
+    bc_printf("$n");
+    _indent(indent);
+    bc_printf("}");
+}
