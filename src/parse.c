@@ -469,12 +469,14 @@ bool bc_parse_expression_bp(
                 if (!bc_parse_type(parse, &res.val.cast.type)) {
                     return false;
                 }
+                lhs = res;
             } else if (_accept(parse, BC_TOK_KW_TRYAS)) {
                 res.kind = BC_AST_EXPR_TRYCAST;
                 res.val.try_cast.expr = res_lhs;
                 if (!bc_parse_type(parse, &res.val.try_cast.type)) {
                     return false;
                 }
+                lhs = res;
             }
             continue;
         }
