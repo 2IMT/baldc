@@ -673,6 +673,7 @@ void bc_ast_print_top_level(struct bc_ast_top_level v, uint32_t indent) {
     switch (v.kind) {
     case BC_AST_TOP_LEVEL_IMPORT:
         bc_ast_print_import(v.val.import, indent + _I);
+        break;
     case BC_AST_TOP_LEVEL_DECL:
         bc_ast_print_decl(v.val.decl, indent + _I);
         break;
