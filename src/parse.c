@@ -194,7 +194,7 @@ static bool _curr(struct bc_parse* parse, enum bc_tok_kind kind) {
 struct bc_parse bc_parse_new(struct bc_lex lex,
     bc_parse_err_callback err_callback, void* err_user_data,
     bc_parse_tok_callback tok_callback, void* tok_user_data) {
-    return (struct bc_parse) {
+    struct bc_parse parse = {
         .init = true,
         .lex = lex,
         .err_callback = err_callback,
@@ -203,6 +203,8 @@ struct bc_parse bc_parse_new(struct bc_lex lex,
         .tok_user_data = tok_user_data,
         .node_arena = bc_mem_arena_new(8 * 1024),
     };
+    _nexttok(&parse);
+    return parse;
 }
 
 void bc_parse_free(struct bc_parse parse) {
@@ -362,6 +364,7 @@ bool bc_parse_expression_list(struct bc_parse* parse,
     if (!bc_parse_expression(parse, &list->expr)) {
         return false;
     }
+    list->next = NULL;
     while (_accept(parse, BC_TOK_COMMA)) {
         struct bc_ast_expr_list* next = _ALLOC_NODE(struct bc_ast_expr_list);
         next->next = NULL;
@@ -400,7 +403,7 @@ bool bc_parse_expression_bp(
     } else if (_accept(parse, BC_TOK_KW_SUPER)) {
         lhs.kind = BC_AST_EXPR_PATH_SEGMENT;
         lhs.val.path_segment.kind = BC_AST_EXPR_PATH_SEGMENT_ROOT;
-    } else if (_prefix_bp(parse->tok.kind, &bp_r)){
+    } else if (_prefix_bp(parse->tok.kind, &bp_r)) {
         lhs.kind = BC_AST_EXPR_UNOP;
         lhs.val.unop.op = parse->tok.kind;
         _nexttok(parse);
@@ -1220,13 +1223,28 @@ bool bc_parse_top_level_item(
     return false;
 }
 
-bool bc_parse(struct bc_parse* parse) {
-    _nexttok(parse);
-    while (parse->tok.kind != BC_TOK_EOF) {
-        struct bc_ast_top_level top_level;
-        if (!bc_parse_top_level_item(parse, &top_level)) {
-            return false;
-        }
+bool bc_parse_top_level_list(
+    struct bc_parse* parse, struct bc_ast_top_level_list* list) {
+    if (!bc_parse_top_level_item(parse, &list->top_level)) {
+        return false;
+    }
+    list->next = NULL;
+    while (_curr(parse, BC_TOK_KW_IMPORT) || _curr(parse, BC_TOK_IDENT) ||
+           _curr(parse, BC_TOK_KW_EXPORT)) {
+        struct bc_ast_top_level_list* next =
+            _ALLOC_NODE(struct bc_ast_top_level_list);
+        bc_parse_top_level_item(parse, &next->top_level);
+        list->next = next;
+        list = next;
+    }
+    return true;
+}
+
+bool bc_parse_module(struct bc_parse* parse, struct bc_ast_module* module) {
+    module->top_level_items = NULL;
+    if (!_curr(parse, BC_TOK_EOF)) {
+        module->top_level_items = _ALLOC_NODE(struct bc_ast_top_level_list);
+        bc_parse_top_level_list(parse, module->top_level_items);
     }
     return true;
 }

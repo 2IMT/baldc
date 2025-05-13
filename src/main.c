@@ -7,6 +7,7 @@
 #include "parse.h"
 #include "str.h"
 #include "print.h"
+#include "ast.h"
 
 static void _print_tok(struct bc_tok tok) {
     const char* n = NULL;
@@ -501,12 +502,16 @@ int main(int argc, char** argv) {
     struct bc_lex lex = bc_lex_new(bc_strv_from_str(file_data));
     struct bc_parse parse =
         bc_parse_new(lex, _err_callback, (void*)src, _tok_callback, (void*)src);
-    if (!bc_parse(&parse)) {
+    struct bc_ast_module module = { 0 };
+    if (!bc_parse_module(&parse, &module)) {
         bc_eprintf("error: parsing failed$n");
         bc_parse_free(parse);
         bc_str_free(file_data);
         return 1;
     }
+
+    bc_ast_print_module(module, 0);
+    bc_printf("$n");
 
     bc_parse_free(parse);
     bc_str_free(file_data);
