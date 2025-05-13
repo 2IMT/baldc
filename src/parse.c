@@ -462,12 +462,14 @@ bool bc_parse_expression_bp(
                 }
             } else if (_accept(parse, BC_TOK_KW_AS)) {
                 res.kind = BC_AST_EXPR_CAST;
-                if (!bc_parse_type(parse, &res.val.cast)) {
+                res.val.cast.expr = res_lhs;
+                if (!bc_parse_type(parse, &res.val.cast.type)) {
                     return false;
                 }
             } else if (_accept(parse, BC_TOK_KW_TRYAS)) {
                 res.kind = BC_AST_EXPR_TRYCAST;
-                if (!bc_parse_type(parse, &res.val.try_cast)) {
+                res.val.try_cast.expr = res_lhs;
+                if (!bc_parse_type(parse, &res.val.try_cast.type)) {
                     return false;
                 }
             }

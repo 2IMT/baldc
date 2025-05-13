@@ -204,6 +204,10 @@ enum bc_ast_expr_access_kind {
     BC_AST_EXPR_ACCESS_NAME,
 };
 
+struct bc_ast_expr_cast {
+    struct bc_ast_expr* expr;
+    struct bc_ast_type type;
+};
 enum bc_ast_expr_path_segment_kind {
     BC_AST_EXPR_PATH_SEGMENT_ROOT,
     BC_AST_EXPR_PATH_SEGMENT_SUPER,
@@ -221,8 +225,8 @@ union bc_ast_expr_val {
     struct bc_ast_expr_binop binop;
     struct bc_ast_expr_index index;
     struct bc_ast_expr_call call;
-    struct bc_ast_type cast;
-    struct bc_ast_type try_cast;
+    struct bc_ast_expr_cast cast;
+    struct bc_ast_expr_cast try_cast;
     struct bc_ast_expr_path_segment path_segment;
 };
 
