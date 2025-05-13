@@ -1239,7 +1239,9 @@ bool bc_parse_top_level_list(
            _curr(parse, BC_TOK_KW_EXPORT)) {
         struct bc_ast_top_level_list* next =
             _ALLOC_NODE(struct bc_ast_top_level_list);
-        bc_parse_top_level_item(parse, &next->top_level);
+        if (!bc_parse_top_level_item(parse, &next->top_level)) {
+            return false;
+        }
         list->next = next;
         list = next;
     }
