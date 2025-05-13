@@ -337,7 +337,6 @@ struct bc_ast_const {
 };
 
 union bc_ast_decl_val {
-    struct bc_ast_import import;
     struct bc_ast_func func;
     struct bc_ast_struct struct_;
     struct bc_ast_enum enum_;
