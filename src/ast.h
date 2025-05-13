@@ -303,7 +303,6 @@ struct bc_ast_defer {
 };
 
 enum bc_ast_decl_kind {
-    BC_AST_DECL_IMPORT,
     BC_AST_DECL_FUNC,
     BC_AST_DECL_STRUCT,
     BC_AST_DECL_ENUM,
