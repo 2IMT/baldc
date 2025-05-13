@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "str.h"
 #include "lex.h"
@@ -208,6 +209,7 @@ struct bc_ast_expr_cast {
     struct bc_ast_expr* expr;
     struct bc_ast_type type;
 };
+
 enum bc_ast_expr_path_segment_kind {
     BC_AST_EXPR_PATH_SEGMENT_ROOT,
     BC_AST_EXPR_PATH_SEGMENT_SUPER,
@@ -369,5 +371,76 @@ struct bc_ast_top_level_list {
     struct bc_ast_top_level top_level;
     struct bc_ast_top_level_list* next;
 };
+
+void bc_ast_print_stmt(struct bc_ast_stmt v, uint32_t indent);
+
+void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent);
+
+void bc_ast_print_block(struct bc_ast_block v, uint32_t indent);
+
+void bc_ast_print_ident_list(
+    const struct bc_ast_ident_list* v, uint32_t indent);
+
+void bc_ast_print_import(struct bc_ast_import v, uint32_t indent);
+
+void bc_ast_print_type(struct bc_ast_type v, uint32_t indent);
+
+void bc_ast_print_type_list(const struct bc_ast_type_list* v, uint32_t indent);
+
+void bc_ast_print_func_param(struct bc_ast_func_param v, uint32_t indent);
+
+void bc_ast_print_func_param_list(
+    const struct bc_ast_func_param_list* v, uint32_t indent);
+
+void bc_ast_print_func(struct bc_ast_func v, uint32_t indent);
+
+void bc_ast_print_literal(struct bc_ast_literal v, uint32_t indent);
+
+void bc_ast_print_expr(struct bc_ast_expr v, uint32_t indent);
+
+void bc_ast_print_expr_list(const struct bc_ast_expr_list* v, uint32_t indent);
+
+void bc_ast_print_let(struct bc_ast_let v, uint32_t indent);
+
+void bc_ast_print_elif(struct bc_ast_elif v, uint32_t indent);
+
+void bc_ast_print_elif_list(const struct bc_ast_elif_list* v, uint32_t indent);
+
+void bc_ast_print_if(struct bc_ast_if v, uint32_t indent);
+
+void bc_ast_print_switchcase(struct bc_ast_switchcase v, uint32_t indent);
+
+void bc_ast_print_switchcase_list(
+    const struct bc_ast_switchcase_list* v, uint32_t indent);
+
+void bc_ast_print_switch(struct bc_ast_switch v, uint32_t indent);
+
+void bc_ast_print_loop(struct bc_ast_loop v, uint32_t indent);
+
+void bc_ast_print_for(struct bc_ast_for v, uint32_t indent);
+
+void bc_ast_print_while(struct bc_ast_while v, uint32_t indent);
+
+void bc_ast_print_return(struct bc_ast_return v, uint32_t indent);
+
+void bc_ast_print_defer(struct bc_ast_defer v, uint32_t indent);
+
+void bc_ast_print_struct_item(struct bc_ast_struct_item v, uint32_t indent);
+
+void bc_ast_print_struct_item_list(
+    const struct bc_ast_struct_item_list* v, uint32_t indent);
+
+void bc_ast_print_struct(struct bc_ast_struct v, uint32_t indent);
+
+void bc_ast_print_enum(struct bc_ast_enum v, uint32_t indent);
+
+void bc_ast_print_const(struct bc_ast_const v, uint32_t indent);
+
+void bc_ast_print_decl(struct bc_ast_decl v, uint32_t indent);
+
+void bc_ast_print_top_level(struct bc_ast_top_level v, uint32_t indent);
+
+void bc_ast_print_top_level_list(
+    const struct bc_ast_top_level_list* v, uint32_t indent);
 
 #endif
