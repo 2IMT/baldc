@@ -491,9 +491,13 @@ void bc_ast_print_if(struct bc_ast_if v, uint32_t indent) {
 
 void bc_ast_print_switchcase(struct bc_ast_switchcase v, uint32_t indent) {
     _indent(indent);
-    bc_printf("switchcase {$n");
-    bc_ast_print_expr(*v.expr, indent + _I);
-    bc_printf("$n");
+    if (v.is_default) {
+        bc_printf("switchcase(default) {$n");
+    } else {
+        bc_printf("switchcase {$n");
+        bc_ast_print_expr(v.expr, indent + _I);
+        bc_printf("$n");
+    }
     bc_ast_print_block(v.block, indent + _I);
     bc_printf("$n");
     _indent(indent);

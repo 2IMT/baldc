@@ -266,8 +266,9 @@ struct bc_ast_if {
 };
 
 struct bc_ast_switchcase {
-    struct bc_ast_expr* expr; // NULL means default
+    struct bc_ast_expr expr;
     struct bc_ast_block block;
+    bool is_default;
 };
 
 struct bc_ast_switchcase_list {

@@ -585,10 +585,9 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
 bool bc_parse_switchcase(
     struct bc_parse* parse, struct bc_ast_switchcase* switchcase) {
     if (_accept(parse, BC_TOK_KW_DEFAULT)) {
-        switchcase->expr = NULL;
+        switchcase->is_default = true;
     } else {
-        switchcase->expr = _ALLOC_NODE(struct bc_ast_expr);
-        if (!bc_parse_expression(parse, switchcase->expr)) {
+        if (!bc_parse_expression(parse, &switchcase->expr)) {
             return false;
         }
     }
