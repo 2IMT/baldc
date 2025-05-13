@@ -157,8 +157,7 @@ TEST_BEGIN(test_str_len) {
 #define _CASE(literal, length) \
     { \
         str = bc_str_from_cstr(literal); \
-        TEST_ASSERT(bc_str_len(str, &len) == true && \
-                    len == length); \
+        TEST_ASSERT(bc_str_len(str, &len) == true && len == length); \
         bc_str_free(str); \
     }
 
