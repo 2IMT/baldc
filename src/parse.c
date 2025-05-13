@@ -4,6 +4,7 @@
 
 #include "ast.h"
 #include "lex.h"
+#include "print.h"
 
 #define _ALLOC_NODE(type) BC_MEM_ARENA_ALLOC_TYPE(&parse->node_arena, type)
 
@@ -842,6 +843,7 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
     }
 
     while (_accept(parse, BC_TOK_KW_SUPER) && !path->is_root) {
+        bc_printf("iter 1$n");
         if (!_expect(parse, BC_TOK_COLCOL)) {
             return false;
         }
@@ -861,10 +863,9 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
                 curr->next = new_segment;
                 curr = new_segment;
             }
-
-            if (!_accept(parse, BC_TOK_COLCOL)) {
-                break;
-            }
+        }
+        if (!_accept(parse, BC_TOK_COLCOL)) {
+            break;
         }
     }
 
@@ -967,16 +968,19 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         return true;
     } else if (_curr(parse, BC_TOK_KW_FUNC)) {
         type->kind = BC_AST_TYPE_FUNC;
+        type->val.func = _ALLOC_NODE(struct bc_ast_type_func);
         if (!bc_parse_type_func(parse, type->val.func)) {
             return false;
         }
         return true;
     } else if (_curr(parse, BC_TOK_IDENT) || _curr(parse, BC_TOK_KW_ROOT) ||
                _curr(parse, BC_TOK_KW_SUPER)) {
+        type->val.path = _ALLOC_NODE(struct bc_ast_type_path);
         type->kind = BC_AST_TYPE_PATH;
         if (!bc_parse_type_path(parse, type->val.path)) {
             return false;
         }
+        return true;
     }
 
     _ERR_EXPECTED_MULTIPLE("type");
