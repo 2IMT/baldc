@@ -942,7 +942,7 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
     } else if (_accept(parse, BC_TOK_KW_TUP)) {
         type->kind = BC_AST_TYPE_TUP;
         type->val.tup = _ALLOC_NODE(struct bc_ast_type_list);
-        if (_expect(parse, BC_TOK_LPAREN)) {
+        if (!_expect(parse, BC_TOK_LPAREN)) {
             return false;
         }
         struct bc_ast_type_list* curr = type->val.tup;
