@@ -124,6 +124,7 @@ void bc_ast_print_ident_list(
     _indent(indent);
     bc_printf("ident_list {$n");
     while (v != NULL) {
+        _indent(indent + _I);
         bc_printf(BC_STRV_PRNT, BC_STRV_PRNTV(v->segment));
         if (v->next != NULL) {
             bc_printf(",");
