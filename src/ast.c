@@ -577,9 +577,7 @@ void bc_ast_print_return(struct bc_ast_return v, uint32_t indent) {
 void bc_ast_print_defer(struct bc_ast_defer v, uint32_t indent) {
     _indent(indent);
     bc_printf("defer {$n");
-    bc_ast_print_expr(v.callee, indent + _I);
-    bc_printf("$n");
-    bc_ast_print_expr_list(v.args, indent + _I);
+    bc_ast_print_expr(v.expr, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");

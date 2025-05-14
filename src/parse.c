@@ -699,19 +699,7 @@ bool bc_parse_defer(struct bc_parse* parse, struct bc_ast_defer* defer) {
     if (!_expect(parse, BC_TOK_KW_DEFER)) {
         return false;
     }
-    if (!bc_parse_expression(parse, &defer->callee)) {
-        return false;
-    }
-    if (!_expect(parse, BC_TOK_LPAREN)) {
-        return false;
-    }
-    if (!_curr(parse, BC_TOK_RPAREN)) {
-        defer->args = _ALLOC_NODE(struct bc_ast_expr_list);
-        if (!bc_parse_expression_list(parse, BC_TOK_RPAREN, defer->args)) {
-            return false;
-        }
-    }
-    if (!_expect(parse, BC_TOK_LPAREN)) {
+    if (!bc_parse_expression(parse, &defer->expr)) {
         return false;
     }
     if (!_expect(parse, BC_TOK_SEMICOLON)) {

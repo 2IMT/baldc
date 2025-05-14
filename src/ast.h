@@ -301,8 +301,7 @@ struct bc_ast_return {
 };
 
 struct bc_ast_defer {
-    struct bc_ast_expr callee;
-    struct bc_ast_expr_list* args;
+    struct bc_ast_expr expr;
 };
 
 enum bc_ast_decl_kind {
