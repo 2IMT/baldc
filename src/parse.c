@@ -1,7 +1,5 @@
 #include "parse.h"
 
-#include <stdbool.h>
-
 #include "ast.h"
 #include "lex.h"
 
