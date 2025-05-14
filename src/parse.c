@@ -196,7 +196,6 @@ struct bc_parse bc_parse_new(struct bc_lex lex,
     bc_parse_err_callback err_callback, void* err_user_data,
     bc_parse_tok_callback tok_callback, void* tok_user_data) {
     struct bc_parse parse = {
-        .init = true,
         .lex = lex,
         .err_callback = err_callback,
         .err_user_data = err_user_data,

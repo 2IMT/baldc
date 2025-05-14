@@ -37,7 +37,6 @@ typedef void (*bc_parse_err_callback)(struct bc_parse_err err, void* user_data);
 typedef void (*bc_parse_tok_callback)(struct bc_tok tok, void* user_data);
 
 struct bc_parse {
-    bool init;
     struct bc_lex lex;
     struct bc_tok tok;
     bc_parse_err_callback err_callback;
