@@ -1102,7 +1102,6 @@ bool bc_parse_struct_decl(
 
 bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
     struct bc_tok tok;
-    _accept(parse, BC_TOK_KW_EXPORT);
     if (!_expect(parse, BC_TOK_KW_ENUM)) {
         return false;
     }
@@ -1136,7 +1135,6 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
 }
 
 bool bc_parse_type_alias(struct bc_parse* parse, struct bc_ast_type* type) {
-    _accept(parse, BC_TOK_KW_EXPORT);
     if (!_expect(parse, BC_TOK_KW_TYPE)) {
         return false;
     }
