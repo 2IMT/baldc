@@ -129,6 +129,7 @@ enum bc_lex_err_kind {
 struct bc_lex_pos {
     size_t l;
     size_t c;
+    size_t offset;
 };
 
 struct bc_lex_loc {

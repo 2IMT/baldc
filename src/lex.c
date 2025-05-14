@@ -438,11 +438,13 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
         .pos = {
             .l = 1,
             .c = 1,
+            .offset = 0,
         },
         .c = 0,
         .pos_prev = {
             .l = 1,
             .c = 1,
+            .offset = 0,
         },
         .init = true,
         .eof = false,
@@ -463,6 +465,7 @@ static void _nextc(struct bc_lex* lex) {
     int32_t codepoint = 0;
     int len = bc_utf8_decode(lex->src.data, lex->src.len, &codepoint);
     BC_ASSERT(len > 0);
+    lex->pos.offset += (size_t)len;
     lex->pos.c++;
     if (codepoint == L'\n') {
         lex->pos.c = 1;
