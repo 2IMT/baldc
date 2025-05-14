@@ -4,7 +4,6 @@
 
 #include "ast.h"
 #include "lex.h"
-#include "print.h"
 
 #define _ALLOC_NODE(type) BC_MEM_ARENA_ALLOC_TYPE(&parse->node_arena, type)
 
@@ -829,7 +828,6 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
     }
 
     while (_accept(parse, BC_TOK_KW_SUPER) && !path->is_root) {
-        bc_printf("iter 1$n");
         if (!_expect(parse, BC_TOK_COLCOL)) {
             return false;
         }
