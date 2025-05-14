@@ -469,7 +469,7 @@ void bc_ast_print_elif_list(const struct bc_ast_elif_list* v, uint32_t indent) {
         v = v->next;
     }
     _indent(indent);
-    bc_printf("{");
+    bc_printf("}");
 }
 
 void bc_ast_print_if(struct bc_ast_if v, uint32_t indent) {
