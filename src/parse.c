@@ -929,6 +929,9 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
     } else if (_accept(parse, BC_TOK_KW_BOOL)) {
         type->kind = BC_AST_TYPE_BOOL;
         return true;
+    } else if (_accept(parse, BC_TOK_KW_UNIT)) {
+        type->kind = BC_AST_TYPE_UNIT;
+        return true;
     } else if (_accept(parse, BC_TOK_LBRACKET)) {
         type->kind = BC_AST_TYPE_ARRAY;
         type->val.arr = _ALLOC_NODE(struct bc_ast_type);
