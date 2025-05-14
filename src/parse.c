@@ -348,7 +348,7 @@ bool bc_parse_literal(struct bc_parse* parse, struct bc_ast_literal* lit) {
         if (!_expect(parse, BC_TOK_RPAREN)) {
             return false;
         }
-    } else if (_accept(parse, BC_TOK_KW_FUNC)) {
+    } else if (_curr(parse, BC_TOK_KW_FUNC)) {
         lit->kind = BC_AST_LITERAL_FUNC;
         if (!bc_parse_func(parse, &lit->val.func)) {
             return false;
