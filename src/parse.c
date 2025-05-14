@@ -511,8 +511,8 @@ bool bc_parse_expression(struct bc_parse* parse, struct bc_ast_expr* expr) {
 }
 
 bool bc_parse_let(struct bc_parse* parse, struct bc_ast_let* let) {
-    let->expr = NULL;
-    let->type = NULL;
+    let->has_expr = false;
+    let->has_type = false;
     if (!_expect(parse, BC_TOK_KW_LET)) {
         return false;
     }
@@ -522,14 +522,14 @@ bool bc_parse_let(struct bc_parse* parse, struct bc_ast_let* let) {
     }
     let->name = tok.val.ident;
     if (_accept(parse, BC_TOK_COLON)) {
-        let->type = _ALLOC_NODE(struct bc_ast_type);
-        if (!bc_parse_type(parse, let->type)) {
+        let->has_type = true;
+        if (!bc_parse_type(parse, &let->type)) {
             return false;
         }
     }
     if (_accept(parse, BC_TOK_EQ)) {
-        let->expr = _ALLOC_NODE(struct bc_ast_expr);
-        if (!bc_parse_expression(parse, let->expr)) {
+        let->has_expr = true;
+        if (!bc_parse_expression(parse, &let->expr)) {
             return false;
         }
     }
@@ -540,7 +540,7 @@ bool bc_parse_let(struct bc_parse* parse, struct bc_ast_let* let) {
 }
 
 bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
-    if_->else_ = NULL;
+    if_->has_else = false;
     if_->elifs = NULL;
     if (!_expect(parse, BC_TOK_KW_IF)) {
         return false;
@@ -574,8 +574,8 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
         }
     }
     if (_accept(parse, BC_TOK_KW_ELSE)) {
-        if_->else_ = _ALLOC_NODE(struct bc_ast_block);
-        if (!bc_parse_block(parse, if_->else_)) {
+        if_->has_else = true;
+        if (!bc_parse_block(parse, &if_->else_)) {
             return false;
         }
     }

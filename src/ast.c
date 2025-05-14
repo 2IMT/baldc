@@ -431,14 +431,14 @@ void bc_ast_print_expr_list(const struct bc_ast_expr_list* v, uint32_t indent) {
 void bc_ast_print_let(struct bc_ast_let v, uint32_t indent) {
     _indent(indent);
     bc_printf("let(" BC_STRV_PRNT ")", BC_STRV_PRNTV(v.name));
-    if (v.expr != NULL || v.type != NULL) {
+    if (v.has_expr || v.has_type) {
         bc_printf(" {$n");
-        if (v.type != NULL) {
-            bc_ast_print_type(*v.type, indent + _I);
+        if (v.has_type) {
+            bc_ast_print_type(v.type, indent + _I);
             bc_printf("$n");
         }
-        if (v.expr != NULL) {
-            bc_ast_print_expr(*v.expr, indent + _I);
+        if (v.has_expr) {
+            bc_ast_print_expr(v.expr, indent + _I);
             bc_printf("$n");
         }
         _indent(indent);
@@ -481,8 +481,8 @@ void bc_ast_print_if(struct bc_ast_if v, uint32_t indent) {
     bc_printf("$n");
     bc_ast_print_elif_list(v.elifs, indent + _I);
     bc_printf("$n");
-    if (v.else_ != NULL) {
-        bc_ast_print_block(*v.else_, indent + _I);
+    if (v.has_else) {
+        bc_ast_print_block(v.else_, indent + _I);
         bc_printf("$n");
     }
     _indent(indent);

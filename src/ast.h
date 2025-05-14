@@ -244,8 +244,10 @@ struct bc_ast_expr_list {
 
 struct bc_ast_let {
     struct bc_strv name;
-    struct bc_ast_type* type; // NULL means no specified type
-    struct bc_ast_expr* expr; // NULL means no expression
+    struct bc_ast_type type;
+    struct bc_ast_expr expr;
+    bool has_type;
+    bool has_expr;
 };
 
 struct bc_ast_elif {
@@ -262,7 +264,8 @@ struct bc_ast_if {
     struct bc_ast_expr expr;
     struct bc_ast_block main;
     struct bc_ast_elif_list* elifs;
-    struct bc_ast_block* else_; // NULL means no else block
+    struct bc_ast_block else_;
+    bool has_else;
 };
 
 struct bc_ast_switchcase {
