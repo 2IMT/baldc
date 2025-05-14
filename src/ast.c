@@ -565,9 +565,9 @@ void bc_ast_print_while(struct bc_ast_while v, uint32_t indent) {
 void bc_ast_print_return(struct bc_ast_return v, uint32_t indent) {
     _indent(indent);
     bc_printf("return");
-    if (v.expr != NULL) {
+    if (!v.is_empty) {
         bc_printf(" {$n");
-        bc_ast_print_expr(*v.expr, indent + _I);
+        bc_ast_print_expr(v.expr, indent + _I);
         bc_printf("$n");
         _indent(indent);
         bc_printf("}");

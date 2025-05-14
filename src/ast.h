@@ -297,7 +297,8 @@ struct bc_ast_while {
 };
 
 struct bc_ast_return {
-    struct bc_ast_expr* expr; // NULL means empty return
+    struct bc_ast_expr expr;
+    bool is_empty;
 };
 
 struct bc_ast_defer {

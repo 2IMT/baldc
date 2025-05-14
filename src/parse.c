@@ -678,15 +678,15 @@ bool bc_parse_while(struct bc_parse* parse, struct bc_ast_while* while_) {
 }
 
 bool bc_parse_return(struct bc_parse* parse, struct bc_ast_return* return_) {
-    return_->expr = NULL;
+    return_->is_empty = true;
     if (!_expect(parse, BC_TOK_KW_RETURN)) {
         return false;
     }
     if (_accept(parse, BC_TOK_SEMICOLON)) {
         return true;
     }
-    return_->expr = _ALLOC_NODE(struct bc_ast_expr);
-    if (!bc_parse_expression(parse, return_->expr)) {
+    return_->is_empty = false;
+    if (!bc_parse_expression(parse, &return_->expr)) {
         return false;
     }
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
