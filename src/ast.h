@@ -210,7 +210,6 @@ struct bc_ast_expr_call {
     struct bc_lex_loc loc;
     struct bc_ast_expr* expr;
     struct bc_ast_expr_list* args;
-    size_t args_len;
 };
 
 enum bc_ast_expr_access_kind {
