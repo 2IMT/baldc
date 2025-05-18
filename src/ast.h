@@ -37,6 +37,7 @@ union bc_ast_stmt_val {
 };
 
 struct bc_ast_stmt {
+    struct bc_lex_loc loc;
     enum bc_ast_stmt_kind kind;
     union bc_ast_stmt_val val;
 };
@@ -47,6 +48,7 @@ struct bc_ast_stmt_list {
 };
 
 struct bc_ast_block {
+    struct bc_lex_loc loc;
     struct bc_ast_stmt_list* stmts;
 };
 
@@ -56,6 +58,7 @@ struct bc_ast_ident_list {
 };
 
 struct bc_ast_import {
+    struct bc_lex_loc loc;
     struct bc_strv renamed_to;
     struct bc_ast_ident_list* segments;
     uint32_t super_count;
@@ -86,17 +89,20 @@ union bc_ast_type_val {
 };
 
 struct bc_ast_type_path {
+    struct bc_lex_loc loc;
     struct bc_ast_ident_list* segments;
     uint32_t super_count;
     bool is_root;
 };
 
 struct bc_ast_type {
+    struct bc_lex_loc loc;
     enum bc_ast_type_kind kind;
     union bc_ast_type_val val;
 };
 
 struct bc_ast_type_func {
+    struct bc_lex_loc loc;
     struct bc_ast_type_list* params;
     struct bc_ast_type ret;
 };
@@ -107,6 +113,7 @@ struct bc_ast_type_list {
 };
 
 struct bc_ast_func_param {
+    struct bc_lex_loc loc;
     struct bc_strv name;
     struct bc_ast_type type;
 };
@@ -117,6 +124,7 @@ struct bc_ast_func_param_list {
 };
 
 struct bc_ast_func {
+    struct bc_lex_loc loc;
     struct bc_ast_func_param_list* params;
     struct bc_ast_type ret;
     struct bc_ast_block block;
@@ -133,6 +141,7 @@ union bc_ast_literal_array_val {
 };
 
 struct bc_ast_literal_array {
+    struct bc_lex_loc loc;
     enum bc_ast_literal_array_kind kind;
     union bc_ast_literal_array_val val;
 };
@@ -162,6 +171,7 @@ union bc_ast_literal_val {
 };
 
 struct bc_ast_literal {
+    struct bc_lex_loc loc;
     enum bc_ast_literal_kind kind;
     union bc_ast_literal_val val;
 };
@@ -178,22 +188,26 @@ enum bc_ast_expr_kind {
 };
 
 struct bc_ast_expr_unop {
+    struct bc_lex_loc loc;
     enum bc_tok_kind op;
     struct bc_ast_expr* operand;
 };
 
 struct bc_ast_expr_binop {
+    struct bc_lex_loc loc;
     enum bc_tok_kind op;
     struct bc_ast_expr* l;
     struct bc_ast_expr* r;
 };
 
 struct bc_ast_expr_index {
+    struct bc_lex_loc loc;
     struct bc_ast_expr* expr;
     struct bc_ast_expr* index;
 };
 
 struct bc_ast_expr_call {
+    struct bc_lex_loc loc;
     struct bc_ast_expr* expr;
     struct bc_ast_expr_list* args;
     size_t args_len;
@@ -206,6 +220,7 @@ enum bc_ast_expr_access_kind {
 };
 
 struct bc_ast_expr_cast {
+    struct bc_lex_loc loc;
     struct bc_ast_expr* expr;
     struct bc_ast_type type;
 };
@@ -217,6 +232,7 @@ enum bc_ast_expr_path_segment_kind {
 };
 
 struct bc_ast_expr_path_segment {
+    struct bc_lex_loc loc;
     enum bc_ast_expr_path_segment_kind kind;
     struct bc_strv name;
 };
@@ -233,6 +249,7 @@ union bc_ast_expr_val {
 };
 
 struct bc_ast_expr {
+    struct bc_lex_loc loc;
     enum bc_ast_expr_kind kind;
     union bc_ast_expr_val val;
 };
@@ -243,6 +260,7 @@ struct bc_ast_expr_list {
 };
 
 struct bc_ast_let {
+    struct bc_lex_loc loc;
     struct bc_strv name;
     struct bc_ast_type type;
     struct bc_ast_expr expr;
@@ -251,6 +269,7 @@ struct bc_ast_let {
 };
 
 struct bc_ast_elif {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_block block;
 };
@@ -261,6 +280,7 @@ struct bc_ast_elif_list {
 };
 
 struct bc_ast_if {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_block main;
     struct bc_ast_elif_list* elifs;
@@ -269,6 +289,7 @@ struct bc_ast_if {
 };
 
 struct bc_ast_switchcase {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_block block;
     bool is_default;
@@ -280,31 +301,37 @@ struct bc_ast_switchcase_list {
 };
 
 struct bc_ast_switch {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_switchcase_list* cases;
 };
 
 struct bc_ast_loop {
+    struct bc_lex_loc loc;
     struct bc_ast_block block;
 };
 
 struct bc_ast_for {
+    struct bc_lex_loc loc;
     struct bc_strv name;
     struct bc_ast_expr expr;
     struct bc_ast_block block;
 };
 
 struct bc_ast_while {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_block block;
 };
 
 struct bc_ast_return {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     bool is_empty;
 };
 
 struct bc_ast_defer {
+    struct bc_lex_loc loc;
     struct bc_ast_expr expr;
 };
 
@@ -317,6 +344,7 @@ enum bc_ast_decl_kind {
 };
 
 struct bc_ast_struct_item {
+    struct bc_lex_loc loc;
     struct bc_strv name;
     struct bc_ast_type type;
     bool is_export;
@@ -328,14 +356,17 @@ struct bc_ast_struct_item_list {
 };
 
 struct bc_ast_struct {
+    struct bc_lex_loc loc;
     struct bc_ast_struct_item_list* items;
 };
 
 struct bc_ast_enum {
+    struct bc_lex_loc loc;
     struct bc_ast_ident_list* items;
 };
 
 struct bc_ast_const {
+    struct bc_lex_loc loc;
     struct bc_ast_type type;
     struct bc_ast_expr expr;
 };
@@ -349,6 +380,7 @@ union bc_ast_decl_val {
 };
 
 struct bc_ast_decl {
+    struct bc_lex_loc loc;
     union bc_ast_decl_val val;
     struct bc_strv name;
     enum bc_ast_decl_kind kind;
@@ -366,6 +398,7 @@ union bc_ast_top_level_val {
 };
 
 struct bc_ast_top_level {
+    struct bc_lex_loc loc;
     enum bc_ast_top_level_kind kind;
     union bc_ast_top_level_val val;
 };
@@ -376,6 +409,7 @@ struct bc_ast_top_level_list {
 };
 
 struct bc_ast_module {
+    struct bc_lex_loc loc;
     struct bc_ast_top_level_list* top_level_items;
 };
 

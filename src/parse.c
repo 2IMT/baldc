@@ -3,6 +3,11 @@
 #include "ast.h"
 #include "lex.h"
 
+#define _LOC_START() struct bc_lex_loc _loc_start = parse->tok.loc;
+
+#define _LOC_END(node) \
+    node->loc = bc_lex_loc_merge(_loc_start, parse->last_loc);
+
 #define _ALLOC_NODE(type) BC_MEM_ARENA_ALLOC_TYPE(&parse->node_arena, type)
 
 #define _ERR_EXPECTED_MULTIPLE(...) \
@@ -135,6 +140,7 @@ static bool _infix_bp(enum bc_tok_kind op, uint8_t* l, uint8_t* r) {
 }
 
 static void _nexttok(struct bc_parse* parse) {
+    parse->last_loc = parse->tok.loc;
     parse->tok = bc_lex_next(&parse->lex);
     if (parse->tok_callback != NULL) {
         parse->tok_callback(parse->tok, parse->tok_user_data);
@@ -210,6 +216,8 @@ void bc_parse_free(struct bc_parse parse) {
 }
 
 bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_IMPORT)) {
         return false;
     }
@@ -275,10 +283,13 @@ bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
         return false;
     }
 
+    _LOC_END(import);
     return true;
 }
 
 bool bc_parse_literal(struct bc_parse* parse, struct bc_ast_literal* lit) {
+    _LOC_START();
+
     struct bc_tok tok;
     if (_accept(parse, BC_TOK_KW_UNIT)) {
         lit->kind = BC_AST_LITERAL_UNIT;
@@ -353,6 +364,7 @@ bool bc_parse_literal(struct bc_parse* parse, struct bc_ast_literal* lit) {
         return false;
     }
 
+    _LOC_END(lit);
     return true;
 }
 
@@ -374,12 +386,13 @@ bool bc_parse_expression_list(struct bc_parse* parse,
         list->next = next;
         list = next;
     }
-
     return true;
 }
 
 bool bc_parse_expression_bp(
     struct bc_parse* parse, uint8_t min_bp, struct bc_ast_expr* expr) {
+    _LOC_START();
+
     uint8_t bp_l = 0, bp_r = 0;
     struct bc_ast_expr lhs = { 0 };
     struct bc_tok tok;
@@ -499,6 +512,7 @@ bool bc_parse_expression_bp(
         break;
     }
     *expr = lhs;
+    _LOC_END(expr);
     return true;
 }
 
@@ -507,6 +521,8 @@ bool bc_parse_expression(struct bc_parse* parse, struct bc_ast_expr* expr) {
 }
 
 bool bc_parse_let(struct bc_parse* parse, struct bc_ast_let* let) {
+    _LOC_START();
+
     let->has_expr = false;
     let->has_type = false;
     if (!_expect(parse, BC_TOK_KW_LET)) {
@@ -532,10 +548,14 @@ bool bc_parse_let(struct bc_parse* parse, struct bc_ast_let* let) {
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
         return false;
     }
+
+    _LOC_END(let);
     return true;
 }
 
 bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
+    _LOC_START();
+
     if_->has_else = false;
     if_->elifs = NULL;
     if (!_expect(parse, BC_TOK_KW_IF)) {
@@ -575,11 +595,15 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
             return false;
         }
     }
+
+    _LOC_END(if_);
     return true;
 }
 
 bool bc_parse_switchcase(
     struct bc_parse* parse, struct bc_ast_switchcase* switchcase) {
+    _LOC_START();
+
     if (_accept(parse, BC_TOK_KW_DEFAULT)) {
         switchcase->is_default = true;
     } else {
@@ -593,10 +617,14 @@ bool bc_parse_switchcase(
     if (!bc_parse_block(parse, &switchcase->block)) {
         return false;
     }
+
+    _LOC_END(switchcase);
     return true;
 }
 
 bool bc_parse_switch(struct bc_parse* parse, struct bc_ast_switch* switch_) {
+    _LOC_START();
+
     switch_->cases = NULL;
     if (!_expect(parse, BC_TOK_KW_SWITCH)) {
         return false;
@@ -626,20 +654,28 @@ bool bc_parse_switch(struct bc_parse* parse, struct bc_ast_switch* switch_) {
     if (!_expect(parse, BC_TOK_RBRACE)) {
         return false;
     }
+
+    _LOC_END(switch_);
     return true;
 }
 
 bool bc_parse_loop(struct bc_parse* parse, struct bc_ast_loop* loop) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_LOOP)) {
         return false;
     }
     if (!bc_parse_block(parse, &loop->block)) {
         return false;
     }
+
+    _LOC_END(loop);
     return true;
 }
 
 bool bc_parse_for(struct bc_parse* parse, struct bc_ast_for* for_) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_FOR)) {
         return false;
     }
@@ -657,10 +693,14 @@ bool bc_parse_for(struct bc_parse* parse, struct bc_ast_for* for_) {
     if (!bc_parse_block(parse, &for_->block)) {
         return false;
     }
+
+    _LOC_END(for_);
     return true;
 }
 
 bool bc_parse_while(struct bc_parse* parse, struct bc_ast_while* while_) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_WHILE)) {
         return false;
     }
@@ -670,10 +710,14 @@ bool bc_parse_while(struct bc_parse* parse, struct bc_ast_while* while_) {
     if (!bc_parse_block(parse, &while_->block)) {
         return false;
     }
+
+    _LOC_END(while_);
     return true;
 }
 
 bool bc_parse_return(struct bc_parse* parse, struct bc_ast_return* return_) {
+    _LOC_START();
+
     return_->is_empty = true;
     if (!_expect(parse, BC_TOK_KW_RETURN)) {
         return false;
@@ -688,10 +732,14 @@ bool bc_parse_return(struct bc_parse* parse, struct bc_ast_return* return_) {
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
         return false;
     }
+
+    _LOC_END(return_);
     return true;
 }
 
 bool bc_parse_defer(struct bc_parse* parse, struct bc_ast_defer* defer) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_DEFER)) {
         return false;
     }
@@ -701,12 +749,17 @@ bool bc_parse_defer(struct bc_parse* parse, struct bc_ast_defer* defer) {
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
         return false;
     }
+
+    _LOC_END(defer);
     return true;
 }
 
 bool bc_parse_stmt(struct bc_parse* parse, struct bc_ast_stmt* stmt) {
     while (_accept(parse, BC_TOK_SEMICOLON))
         ;
+
+    _LOC_START();
+
     if (_curr(parse, BC_TOK_KW_LET)) {
         stmt->kind = BC_AST_STMT_LET;
         stmt->val.let = _ALLOC_NODE(struct bc_ast_let);
@@ -781,10 +834,14 @@ bool bc_parse_stmt(struct bc_parse* parse, struct bc_ast_stmt* stmt) {
             return false;
         }
     }
+
+    _LOC_END(stmt);
     return true;
 }
 
 bool bc_parse_block(struct bc_parse* parse, struct bc_ast_block* block) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_LBRACE)) {
         return false;
     }
@@ -807,10 +864,14 @@ bool bc_parse_block(struct bc_parse* parse, struct bc_ast_block* block) {
     if (!_expect(parse, BC_TOK_RBRACE)) {
         return false;
     }
+
+    _LOC_END(block);
     return true;
 }
 
 bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
+    _LOC_START();
+
     path->is_root = false;
     path->super_count = 0;
     path->segments = NULL;
@@ -851,10 +912,13 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
         }
     }
 
+    _LOC_END(path);
     return true;
 }
 
 bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
+    _LOC_START();
+
     func->params = NULL;
     func->ret.kind = BC_AST_TYPE_UNIT;
     if (!_expect(parse, BC_TOK_KW_FUNC)) {
@@ -890,31 +954,28 @@ bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
             return false;
         }
     }
+
+    _LOC_END(func);
     return true;
 }
 
 bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
+    _LOC_START();
+
     if (_accept(parse, BC_TOK_KW_STRING)) {
         type->kind = BC_AST_TYPE_STRING;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_CHAR)) {
         type->kind = BC_AST_TYPE_CHAR;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_INT)) {
         type->kind = BC_AST_TYPE_INT;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_BYTE)) {
         type->kind = BC_AST_TYPE_BYTE;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_FLOAT)) {
         type->kind = BC_AST_TYPE_FLOAT;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_BOOL)) {
         type->kind = BC_AST_TYPE_BOOL;
-        return true;
     } else if (_accept(parse, BC_TOK_KW_UNIT)) {
         type->kind = BC_AST_TYPE_UNIT;
-        return true;
     } else if (_accept(parse, BC_TOK_LBRACKET)) {
         type->kind = BC_AST_TYPE_ARRAY;
         type->val.arr = _ALLOC_NODE(struct bc_ast_type);
@@ -924,7 +985,6 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         if (!_expect(parse, BC_TOK_RBRACKET)) {
             return false;
         }
-        return true;
     } else if (_accept(parse, BC_TOK_KW_TUP)) {
         type->kind = BC_AST_TYPE_TUP;
         type->val.tup = _ALLOC_NODE(struct bc_ast_type_list);
@@ -950,14 +1010,12 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         if (!_expect(parse, BC_TOK_RPAREN)) {
             return false;
         }
-        return true;
     } else if (_curr(parse, BC_TOK_KW_FUNC)) {
         type->kind = BC_AST_TYPE_FUNC;
         type->val.func = _ALLOC_NODE(struct bc_ast_type_func);
         if (!bc_parse_type_func(parse, type->val.func)) {
             return false;
         }
-        return true;
     } else if (_curr(parse, BC_TOK_IDENT) || _curr(parse, BC_TOK_KW_ROOT) ||
                _curr(parse, BC_TOK_KW_SUPER)) {
         type->val.path = _ALLOC_NODE(struct bc_ast_type_path);
@@ -965,16 +1023,19 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         if (!bc_parse_type_path(parse, type->val.path)) {
             return false;
         }
-        return true;
+    } else {
+        _ERR_EXPECTED_MULTIPLE("type");
+        return false;
     }
 
-    _ERR_EXPECTED_MULTIPLE("type");
-
-    return false;
+    _LOC_END(type);
+    return true;
 }
 
 bool bc_parse_func_param(
     struct bc_parse* parse, struct bc_ast_func_param* param) {
+    _LOC_START();
+
     struct bc_tok tok = { 0 };
     if (!_expect_get(parse, BC_TOK_IDENT, &tok)) {
         return false;
@@ -985,10 +1046,17 @@ bool bc_parse_func_param(
         return false;
     }
 
-    return bc_parse_type(parse, &param->type);
+    if (!bc_parse_type(parse, &param->type)) {
+        return false;
+    }
+
+    _LOC_END(param);
+    return true;
 }
 
 bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
+    _LOC_START();
+
     func->params = NULL;
     func->ret.kind = BC_AST_TYPE_UNIT;
     if (!_expect(parse, BC_TOK_KW_FUNC)) {
@@ -1028,11 +1096,15 @@ bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
     if (!bc_parse_block(parse, &func->block)) {
         return false;
     }
+
+    _LOC_END(func);
     return true;
 }
 
 bool bc_parse_struct_item(
     struct bc_parse* parse, struct bc_ast_struct_item* item) {
+    _LOC_START();
+
     struct bc_tok tok;
     item->is_export = false;
     if (_accept(parse, BC_TOK_KW_EXPORT)) {
@@ -1045,11 +1117,18 @@ bool bc_parse_struct_item(
     if (!_expect(parse, BC_TOK_COLON)) {
         return false;
     }
-    return bc_parse_type(parse, &item->type);
+    if (!bc_parse_type(parse, &item->type)) {
+        return false;
+    }
+
+    _LOC_END(item);
+    return true;
 }
 
 bool bc_parse_struct_decl(
     struct bc_parse* parse, struct bc_ast_struct* struct_) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_STRUCT)) {
         return false;
     }
@@ -1083,10 +1162,13 @@ bool bc_parse_struct_decl(
         return false;
     }
 
+    _LOC_END(struct_);
     return true;
 }
 
 bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
+    _LOC_START();
+
     struct bc_tok tok;
     if (!_expect(parse, BC_TOK_KW_ENUM)) {
         return false;
@@ -1117,10 +1199,13 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
         return false;
     }
 
+    _LOC_END(enum_);
     return true;
 }
 
 bool bc_parse_type_alias(struct bc_parse* parse, struct bc_ast_type* type) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_TYPE)) {
         return false;
     }
@@ -1133,10 +1218,14 @@ bool bc_parse_type_alias(struct bc_parse* parse, struct bc_ast_type* type) {
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
         return false;
     }
+
+    _LOC_END(type);
     return true;
 }
 
 bool bc_parse_const_decl(struct bc_parse* parse, struct bc_ast_const* const_) {
+    _LOC_START();
+
     if (!_expect(parse, BC_TOK_KW_CONST)) {
         return false;
     }
@@ -1155,10 +1244,14 @@ bool bc_parse_const_decl(struct bc_parse* parse, struct bc_ast_const* const_) {
     if (!_expect(parse, BC_TOK_SEMICOLON)) {
         return false;
     }
+
+    _LOC_END(const_);
     return true;
 }
 
 bool bc_parse_decl(struct bc_parse* parse, struct bc_ast_decl* decl) {
+    _LOC_START();
+
     decl->is_export = false;
     if (_accept(parse, BC_TOK_KW_EXPORT)) {
         decl->is_export = true;
@@ -1176,40 +1269,60 @@ bool bc_parse_decl(struct bc_parse* parse, struct bc_ast_decl* decl) {
 
     if (_curr(parse, BC_TOK_KW_FUNC)) {
         decl->kind = BC_AST_DECL_FUNC;
-        return bc_parse_func(parse, &decl->val.func);
+        if (!bc_parse_func(parse, &decl->val.func)) {
+            return false;
+        }
     } else if (_curr(parse, BC_TOK_KW_STRUCT)) {
         decl->kind = BC_AST_DECL_STRUCT;
-        return bc_parse_struct_decl(parse, &decl->val.struct_);
+        if (!bc_parse_struct_decl(parse, &decl->val.struct_)) {
+            return false;
+        }
     } else if (_curr(parse, BC_TOK_KW_ENUM)) {
         decl->kind = BC_AST_DECL_ENUM;
-        return bc_parse_enum_decl(parse, &decl->val.enum_);
+        if (!bc_parse_enum_decl(parse, &decl->val.enum_)) {
+            return false;
+        }
     } else if (_curr(parse, BC_TOK_KW_TYPE)) {
         decl->kind = BC_AST_DECL_TYPE_ALIAS;
-        return bc_parse_type_alias(parse, &decl->val.type_alias);
+        if (!bc_parse_type_alias(parse, &decl->val.type_alias)) {
+            return false;
+        }
     } else if (_curr(parse, BC_TOK_KW_CONST)) {
         decl->kind = BC_AST_DECL_CONST;
-        return bc_parse_const_decl(parse, &decl->val.const_);
+        if (!bc_parse_const_decl(parse, &decl->val.const_)) {
+            return false;
+        }
+    } else {
+        _ERR_EXPECTED_MULTIPLE(
+            "`func`", "`struct`", "`enum`", "`type`", "`const`");
+        return false;
     }
 
-    _ERR_EXPECTED_MULTIPLE("`func`", "`struct`", "`enum`", "`type`", "`const`");
-
-    return false;
+    _LOC_END(decl);
+    return true;
 }
 
 bool bc_parse_top_level_item(
     struct bc_parse* parse, struct bc_ast_top_level* top_level) {
+    _LOC_START();
+
     if (_curr(parse, BC_TOK_KW_IMPORT)) {
         top_level->kind = BC_AST_TOP_LEVEL_IMPORT;
-        return bc_parse_import(parse, &top_level->val.import);
-    }
-    if (_curr(parse, BC_TOK_IDENT) || _curr(parse, BC_TOK_KW_EXPORT)) {
+        if (!bc_parse_import(parse, &top_level->val.import)) {
+            return false;
+        }
+    } else if (_curr(parse, BC_TOK_IDENT) || _curr(parse, BC_TOK_KW_EXPORT)) {
         top_level->kind = BC_AST_TOP_LEVEL_DECL;
-        return bc_parse_decl(parse, &top_level->val.decl);
+        if (!bc_parse_decl(parse, &top_level->val.decl)) {
+            return false;
+        }
+    } else {
+        _ERR_EXPECTED_MULTIPLE("import statement", "declaration");
+        return false;
     }
 
-    _ERR_EXPECTED_MULTIPLE("import statement", "declaration");
-
-    return false;
+    _LOC_END(top_level);
+    return true;
 }
 
 bool bc_parse_top_level_list(
@@ -1233,10 +1346,14 @@ bool bc_parse_top_level_list(
 }
 
 bool bc_parse_module(struct bc_parse* parse, struct bc_ast_module* module) {
+    _LOC_START();
+
     module->top_level_items = NULL;
     if (!_curr(parse, BC_TOK_EOF)) {
         module->top_level_items = _ALLOC_NODE(struct bc_ast_top_level_list);
         bc_parse_top_level_list(parse, module->top_level_items);
     }
+
+    _LOC_END(module);
     return true;
 }
