@@ -8,6 +8,14 @@
 #include "str.h"
 #include "lex.h"
 
+#define BC_AST_DECL_LIST(list_typename, item_type) \
+    struct list_typename { \
+        item_type item; \
+        struct list_typename* next; \
+    }
+
+    }
+
 enum bc_ast_stmt_kind {
     BC_AST_STMT_EXPR,
     BC_AST_STMT_LET,
@@ -42,20 +50,14 @@ struct bc_ast_stmt {
     union bc_ast_stmt_val val;
 };
 
-struct bc_ast_stmt_list {
-    struct bc_ast_stmt stmt;
-    struct bc_ast_stmt_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_stmt_list, struct bc_ast_stmt);
 
 struct bc_ast_block {
     struct bc_lex_loc loc;
     struct bc_ast_stmt_list* stmts;
 };
 
-struct bc_ast_ident_list {
-    struct bc_strv segment;
-    struct bc_ast_ident_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_ident_list, struct bc_strv);
 
 struct bc_ast_import {
     struct bc_lex_loc loc;
@@ -107,10 +109,7 @@ struct bc_ast_type_func {
     struct bc_ast_type ret;
 };
 
-struct bc_ast_type_list {
-    struct bc_ast_type type;
-    struct bc_ast_type_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_type_list, struct bc_ast_type);
 
 struct bc_ast_func_param {
     struct bc_lex_loc loc;
@@ -118,10 +117,7 @@ struct bc_ast_func_param {
     struct bc_ast_type type;
 };
 
-struct bc_ast_func_param_list {
-    struct bc_ast_func_param param;
-    struct bc_ast_func_param_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_func_param_list, struct bc_ast_func_param);
 
 struct bc_ast_func {
     struct bc_lex_loc loc;
@@ -253,10 +249,7 @@ struct bc_ast_expr {
     union bc_ast_expr_val val;
 };
 
-struct bc_ast_expr_list {
-    struct bc_ast_expr expr;
-    struct bc_ast_expr_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_expr_list, struct bc_ast_expr);
 
 struct bc_ast_let {
     struct bc_lex_loc loc;
@@ -273,10 +266,7 @@ struct bc_ast_elif {
     struct bc_ast_block block;
 };
 
-struct bc_ast_elif_list {
-    struct bc_ast_elif elif;
-    struct bc_ast_elif_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_elif_list, struct bc_ast_elif);
 
 struct bc_ast_if {
     struct bc_lex_loc loc;
@@ -294,10 +284,7 @@ struct bc_ast_switchcase {
     bool is_default;
 };
 
-struct bc_ast_switchcase_list {
-    struct bc_ast_switchcase case_;
-    struct bc_ast_switchcase_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_switchcase_list, struct bc_ast_switchcase);
 
 struct bc_ast_switch {
     struct bc_lex_loc loc;
@@ -349,10 +336,7 @@ struct bc_ast_struct_item {
     bool is_export;
 };
 
-struct bc_ast_struct_item_list {
-    struct bc_ast_struct_item item;
-    struct bc_ast_struct_item_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_struct_item_list, struct bc_ast_struct_item);
 
 struct bc_ast_struct {
     struct bc_lex_loc loc;
@@ -402,10 +386,7 @@ struct bc_ast_top_level {
     union bc_ast_top_level_val val;
 };
 
-struct bc_ast_top_level_list {
-    struct bc_ast_top_level top_level;
-    struct bc_ast_top_level_list* next;
-};
+BC_AST_DECL_LIST(bc_ast_top_level_list, struct bc_ast_top_level);
 
 struct bc_ast_module {
     struct bc_lex_loc loc;

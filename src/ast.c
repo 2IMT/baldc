@@ -99,7 +99,7 @@ void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent) {
     _indent(indent);
     bc_printf("stmt_list {$n");
     while (v != NULL) {
-        bc_ast_print_stmt(v->stmt, indent + _I);
+        bc_ast_print_stmt(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -125,7 +125,7 @@ void bc_ast_print_ident_list(
     bc_printf("ident_list {$n");
     while (v != NULL) {
         _indent(indent + _I);
-        bc_printf(BC_STRV_PRNT, BC_STRV_PRNTV(v->segment));
+        bc_printf(BC_STRV_PRNT, BC_STRV_PRNTV(v->item));
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -224,7 +224,7 @@ void bc_ast_print_type_list(const struct bc_ast_type_list* v, uint32_t indent) {
     _indent(indent);
     bc_printf("types {$n");
     while (v != NULL) {
-        bc_ast_print_type(v->type, indent + _I);
+        bc_ast_print_type(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -249,7 +249,7 @@ void bc_ast_print_func_param_list(
     _indent(indent);
     bc_printf("params {$n");
     while (v != NULL) {
-        bc_ast_print_func_param(v->param, indent + _I);
+        bc_ast_print_func_param(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -417,7 +417,7 @@ void bc_ast_print_expr_list(const struct bc_ast_expr_list* v, uint32_t indent) {
     _indent(indent);
     bc_printf("expr_list {$n");
     while (v != NULL) {
-        bc_ast_print_expr(v->expr, indent + _I);
+        bc_ast_print_expr(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -461,7 +461,7 @@ void bc_ast_print_elif_list(const struct bc_ast_elif_list* v, uint32_t indent) {
     _indent(indent);
     bc_printf("elif_list {$n");
     while (v != NULL) {
-        bc_ast_print_elif(v->elif, indent + _I);
+        bc_ast_print_elif(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -509,7 +509,7 @@ void bc_ast_print_switchcase_list(
     _indent(indent);
     bc_printf("switchcase_list {$n");
     while (v != NULL) {
-        bc_ast_print_switchcase(v->case_, indent + _I);
+        bc_ast_print_switchcase(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }
@@ -692,7 +692,7 @@ void bc_ast_print_top_level_list(
     _indent(indent);
     bc_printf("top_level_list {$n");
     while (v != NULL) {
-        bc_ast_print_top_level(v->top_level, indent + _I);
+        bc_ast_print_top_level(v->item, indent + _I);
         if (v->next != NULL) {
             bc_printf(",");
         }

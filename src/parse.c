@@ -250,7 +250,7 @@ bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
         if (_accept_get(parse, BC_TOK_IDENT, &tok)) {
             struct bc_ast_ident_list* new_segment =
                 _ALLOC_NODE(struct bc_ast_ident_list);
-            new_segment->segment = tok.val.ident;
+            new_segment->item = tok.val.ident;
             new_segment->next = NULL;
             if (import->segments == NULL) {
                 import->segments = new_segment;
@@ -370,7 +370,7 @@ bool bc_parse_literal(struct bc_parse* parse, struct bc_ast_literal* lit) {
 
 bool bc_parse_expression_list(struct bc_parse* parse,
     enum bc_tok_kind terminator, struct bc_ast_expr_list* list) {
-    if (!bc_parse_expression(parse, &list->expr)) {
+    if (!bc_parse_expression(parse, &list->item)) {
         return false;
     }
     list->next = NULL;
@@ -380,7 +380,7 @@ bool bc_parse_expression_list(struct bc_parse* parse,
         if (_curr(parse, terminator)) {
             break;
         }
-        if (!bc_parse_expression(parse, &next->expr)) {
+        if (!bc_parse_expression(parse, &next->item)) {
             return false;
         }
         list->next = next;
@@ -571,20 +571,20 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
         if_->elifs = _ALLOC_NODE(struct bc_ast_elif_list);
         struct bc_ast_elif_list* curr = if_->elifs;
         curr->next = NULL;
-        if (!bc_parse_expression(parse, &curr->elif.expr)) {
+        if (!bc_parse_expression(parse, &curr->item.expr)) {
             return false;
         }
-        if (!bc_parse_block(parse, &curr->elif.block)) {
+        if (!bc_parse_block(parse, &curr->item.block)) {
             return false;
         }
         while (_accept(parse, BC_TOK_KW_ELIF)) {
             curr->next = _ALLOC_NODE(struct bc_ast_elif_list);
             curr->next->next = NULL;
             curr = curr->next;
-            if (!bc_parse_expression(parse, &curr->elif.expr)) {
+            if (!bc_parse_expression(parse, &curr->item.expr)) {
                 return false;
             }
-            if (!bc_parse_block(parse, &curr->elif.block)) {
+            if (!bc_parse_block(parse, &curr->item.block)) {
                 return false;
             }
         }
@@ -641,14 +641,14 @@ bool bc_parse_switch(struct bc_parse* parse, struct bc_ast_switch* switch_) {
         switch_->cases = _ALLOC_NODE(struct bc_ast_switchcase_list);
         struct bc_ast_switchcase_list* curr = switch_->cases;
         curr->next = NULL;
-        if (!bc_parse_switchcase(parse, &curr->case_)) {
+        if (!bc_parse_switchcase(parse, &curr->item)) {
             return false;
         }
         while (!_curr(parse, BC_TOK_RBRACE)) {
             curr->next = _ALLOC_NODE(struct bc_ast_switchcase_list);
             curr->next->next = NULL;
             curr = curr->next;
-            if (!bc_parse_switchcase(parse, &curr->case_)) {
+            if (!bc_parse_switchcase(parse, &curr->item)) {
                 return false;
             }
         }
@@ -851,13 +851,13 @@ bool bc_parse_block(struct bc_parse* parse, struct bc_ast_block* block) {
         block->stmts = _ALLOC_NODE(struct bc_ast_stmt_list);
         struct bc_ast_stmt_list* curr = block->stmts;
         curr->next = NULL;
-        if (!bc_parse_stmt(parse, &curr->stmt)) {
+        if (!bc_parse_stmt(parse, &curr->item)) {
             return false;
         }
         while (!_curr(parse, BC_TOK_RBRACE)) {
             curr->next = _ALLOC_NODE(struct bc_ast_stmt_list);
             curr->next->next = NULL;
-            if (!bc_parse_stmt(parse, &curr->next->stmt)) {
+            if (!bc_parse_stmt(parse, &curr->next->item)) {
                 return false;
             }
             curr = curr->next;
@@ -899,7 +899,7 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
         if (_accept_get(parse, BC_TOK_IDENT, &tok)) {
             struct bc_ast_ident_list* new_segment =
                 _ALLOC_NODE(struct bc_ast_ident_list);
-            new_segment->segment = tok.val.ident;
+            new_segment->item = tok.val.ident;
             new_segment->next = NULL;
             if (path->segments == NULL) {
                 path->segments = new_segment;
@@ -933,7 +933,7 @@ bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
         struct bc_ast_type_list* param = _ALLOC_NODE(struct bc_ast_type_list);
         param->next = NULL;
         func->params = param;
-        if (!bc_parse_type(parse, &param->type)) {
+        if (!bc_parse_type(parse, &param->item)) {
             return false;
         }
         while (_accept(parse, BC_TOK_COMMA)) {
@@ -942,7 +942,7 @@ bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
             }
             param->next = _ALLOC_NODE(struct bc_ast_type_list);
             param->next->next = NULL;
-            if (!bc_parse_type(parse, &param->next->type)) {
+            if (!bc_parse_type(parse, &param->next->item)) {
                 return false;
             }
             param = param->next;
@@ -995,7 +995,7 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         }
         struct bc_ast_type_list* curr = type->val.tup;
         curr->next = NULL;
-        if (!bc_parse_type(parse, &curr->type)) {
+        if (!bc_parse_type(parse, &curr->item)) {
             return false;
         }
         while (_accept(parse, BC_TOK_COMMA)) {
@@ -1004,7 +1004,7 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
             }
             curr->next = _ALLOC_NODE(struct bc_ast_type_list);
             curr->next->next = NULL;
-            if (!bc_parse_type(parse, &curr->next->type)) {
+            if (!bc_parse_type(parse, &curr->next->item)) {
                 return false;
             }
             curr = curr->next;
@@ -1072,7 +1072,7 @@ bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
             _ALLOC_NODE(struct bc_ast_func_param_list);
         param->next = NULL;
         func->params = param;
-        if (!bc_parse_func_param(parse, &param->param)) {
+        if (!bc_parse_func_param(parse, &param->item)) {
             return false;
         }
         while (_accept(parse, BC_TOK_COMMA)) {
@@ -1081,7 +1081,7 @@ bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
             }
             param->next = _ALLOC_NODE(struct bc_ast_func_param_list);
             param->next->next = NULL;
-            if (!bc_parse_func_param(parse, &param->next->param)) {
+            if (!bc_parse_func_param(parse, &param->next->item)) {
                 return false;
             }
             param = param->next;
@@ -1184,7 +1184,7 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
     enum_->items = _ALLOC_NODE(struct bc_ast_ident_list);
     struct bc_ast_ident_list* curr = enum_->items;
     curr->next = NULL;
-    curr->segment = tok.val.ident;
+    curr->item = tok.val.ident;
     while (_accept(parse, BC_TOK_COMMA)) {
         if (_curr(parse, BC_TOK_RBRACE)) {
             break;
@@ -1194,7 +1194,7 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
         }
         curr->next = _ALLOC_NODE(struct bc_ast_ident_list);
         curr->next->next = NULL;
-        curr->next->segment = tok.val.ident;
+        curr->next->item = tok.val.ident;
         curr = curr->next;
     }
     if (!_expect(parse, BC_TOK_RBRACE)) {
@@ -1329,7 +1329,7 @@ bool bc_parse_top_level_item(
 
 bool bc_parse_top_level_list(
     struct bc_parse* parse, struct bc_ast_top_level_list* list) {
-    if (!bc_parse_top_level_item(parse, &list->top_level)) {
+    if (!bc_parse_top_level_item(parse, &list->item)) {
         return false;
     }
     list->next = NULL;
@@ -1338,7 +1338,7 @@ bool bc_parse_top_level_list(
         struct bc_ast_top_level_list* next =
             _ALLOC_NODE(struct bc_ast_top_level_list);
         next->next = NULL;
-        if (!bc_parse_top_level_item(parse, &next->top_level)) {
+        if (!bc_parse_top_level_item(parse, &next->item)) {
             return false;
         }
         list->next = next;
