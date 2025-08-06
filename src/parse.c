@@ -604,6 +604,8 @@ bool bc_parse_switchcase(
     struct bc_parse* parse, struct bc_ast_switchcase* switchcase) {
     _LOC_START();
 
+    switchcase->is_default = false;
+
     if (_accept(parse, BC_TOK_KW_DEFAULT)) {
         switchcase->is_default = true;
     } else {
