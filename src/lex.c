@@ -437,9 +437,9 @@ struct bc_lex_loc bc_lex_loc_merge(struct bc_lex_loc s, struct bc_lex_loc e) {
     };
 }
 
-struct bc_lex bc_lex_new(struct bc_strv src) {
+struct bc_lex bc_lex_new(struct bc_strv src, struct bc_mem_arena* mem_arena) {
     return (struct bc_lex) {
-        .escaped_strings_arena = bc_mem_arena_new(1024 * 4),
+        .mem_arena = mem_arena,
         .src = src,
         .src_ptr_prev = NULL,
         .pos = {
@@ -456,10 +456,6 @@ struct bc_lex bc_lex_new(struct bc_strv src) {
         .init = true,
         .eof = false,
     };
-}
-
-void bc_lex_free(struct bc_lex lex) {
-    bc_mem_arena_free(lex.escaped_strings_arena);
 }
 
 static void _nextc(struct bc_lex* lex) {
@@ -560,8 +556,8 @@ static struct bc_tok _lex_string(struct bc_lex* lex) {
         }
         struct bc_strv escaped_data = { 0 };
         struct bc_lex_err unescape_err;
-        if (!_unescape(data, &escaped_data, lex->spos,
-                &lex->escaped_strings_arena, &unescape_err)) {
+        if (!_unescape(data, &escaped_data, lex->spos, lex->mem_arena,
+                &unescape_err)) {
             return _errval(*lex, unescape_err);
         }
         if (is_char) {

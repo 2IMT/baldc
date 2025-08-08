@@ -165,7 +165,7 @@ struct bc_tok {
 };
 
 struct bc_lex {
-    struct bc_mem_arena escaped_strings_arena;
+    struct bc_mem_arena* mem_arena;
     struct bc_strv src;
     const char* src_ptr_prev;
     struct bc_lex_pos pos;
@@ -183,9 +183,7 @@ struct bc_lex_loc bc_lex_loc_new(struct bc_lex_pos s, struct bc_lex_pos e);
 
 struct bc_lex_loc bc_lex_loc_merge(struct bc_lex_loc s, struct bc_lex_loc e);
 
-struct bc_lex bc_lex_new(struct bc_strv src);
-
-void bc_lex_free(struct bc_lex lex);
+struct bc_lex bc_lex_new(struct bc_strv src, struct bc_mem_arena* mem_arena);
 
 struct bc_tok bc_lex_next(struct bc_lex* lex);
 

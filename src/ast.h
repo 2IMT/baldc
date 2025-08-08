@@ -7,6 +7,7 @@
 
 #include "str.h"
 #include "lex.h"
+#include "mem.h"
 
 #define BC_AST_DECL_LIST(list_typename, item_type) \
     struct list_typename { \
@@ -14,7 +15,32 @@
         struct list_typename* next; \
     }
 
+#define BC_AST_DECL_ARR(arr_typename, item_type) \
+    struct arr_typename { \
+        item_type* items; \
+        size_t len; \
     }
+
+#define BC_AST_LIST_FLATTEN(list_type, item_type, list, arr, arena_ptr) \
+    do { \
+        size_t len = 0; \
+        list_type* curr = (list); \
+        while (curr != NULL) { \
+            len++; \
+            curr = curr->next; \
+        } \
+        curr = (list); \
+        item_type* items = NULL; \
+        if (len > 0) { \
+            items = BC_MEM_ARENA_CALLOC_TYPE((arena_ptr), item_type, len); \
+            for (size_t i = 0; i < len; i++) { \
+                items[i] = curr->item; \
+                curr = curr->next; \
+            } \
+        } \
+        (arr).len = len; \
+        (arr).items = items; \
+    } while (false)
 
 enum bc_ast_stmt_kind {
     BC_AST_STMT_EXPR,
@@ -52,17 +78,21 @@ struct bc_ast_stmt {
 
 BC_AST_DECL_LIST(bc_ast_stmt_list, struct bc_ast_stmt);
 
+BC_AST_DECL_ARR(bc_ast_stmt_arr, struct bc_ast_stmt);
+
 struct bc_ast_block {
     struct bc_lex_loc loc;
-    struct bc_ast_stmt_list* stmts;
+    struct bc_ast_stmt_arr stmts;
 };
 
 BC_AST_DECL_LIST(bc_ast_ident_list, struct bc_strv);
 
+BC_AST_DECL_ARR(bc_ast_ident_arr, struct bc_strv);
+
 struct bc_ast_import {
     struct bc_lex_loc loc;
     struct bc_strv renamed_to;
-    struct bc_ast_ident_list* segments;
+    struct bc_ast_ident_arr segments;
     uint32_t super_count;
     bool is_root;
     bool is_renamed;
@@ -83,16 +113,18 @@ enum bc_ast_type_kind {
     BC_AST_TYPE_PATH,
 };
 
+BC_AST_DECL_ARR(bc_ast_type_arr, struct bc_ast_type);
+
 union bc_ast_type_val {
     struct bc_ast_type* arr;
-    struct bc_ast_type_list* tup;
+    struct bc_ast_type_arr tup;
     struct bc_ast_type_func* func;
     struct bc_ast_type_path* path;
 };
 
 struct bc_ast_type_path {
     struct bc_lex_loc loc;
-    struct bc_ast_ident_list* segments;
+    struct bc_ast_ident_arr segments;
     uint32_t super_count;
     bool is_root;
 };
@@ -105,7 +137,7 @@ struct bc_ast_type {
 
 struct bc_ast_type_func {
     struct bc_lex_loc loc;
-    struct bc_ast_type_list* params;
+    struct bc_ast_type_arr params;
     struct bc_ast_type ret;
 };
 
@@ -119,9 +151,11 @@ struct bc_ast_func_param {
 
 BC_AST_DECL_LIST(bc_ast_func_param_list, struct bc_ast_func_param);
 
+BC_AST_DECL_ARR(bc_ast_func_param_arr, struct bc_ast_func_param);
+
 struct bc_ast_func {
     struct bc_lex_loc loc;
-    struct bc_ast_func_param_list* params;
+    struct bc_ast_func_param_arr params;
     struct bc_ast_type ret;
     struct bc_ast_block block;
 };
@@ -131,8 +165,10 @@ enum bc_ast_literal_array_kind {
     BC_AST_LITERAL_ARRAY_DEFAULT,
 };
 
+BC_AST_DECL_ARR(bc_ast_expr_arr, struct bc_ast_expr);
+
 union bc_ast_literal_array_val {
-    struct bc_ast_expr_list* regular;
+    struct bc_ast_expr_arr regular;
     struct bc_ast_expr* default_;
 };
 
@@ -162,7 +198,7 @@ enum bc_ast_literal_kind {
 union bc_ast_literal_val {
     struct bc_strv primitive;
     struct bc_ast_literal_array array;
-    struct bc_ast_expr_list* tuple;
+    struct bc_ast_expr_arr tuple;
     struct bc_ast_func func;
 };
 
@@ -205,7 +241,7 @@ struct bc_ast_expr_index {
 struct bc_ast_expr_call {
     struct bc_lex_loc loc;
     struct bc_ast_expr* expr;
-    struct bc_ast_expr_list* args;
+    struct bc_ast_expr_arr args;
 };
 
 enum bc_ast_expr_access_kind {
@@ -268,11 +304,13 @@ struct bc_ast_elif {
 
 BC_AST_DECL_LIST(bc_ast_elif_list, struct bc_ast_elif);
 
+BC_AST_DECL_ARR(bc_ast_elif_arr, struct bc_ast_elif);
+
 struct bc_ast_if {
     struct bc_lex_loc loc;
     struct bc_ast_expr expr;
     struct bc_ast_block main;
-    struct bc_ast_elif_list* elifs;
+    struct bc_ast_elif_arr elifs;
     struct bc_ast_block else_;
     bool has_else;
 };
@@ -286,10 +324,12 @@ struct bc_ast_switchcase {
 
 BC_AST_DECL_LIST(bc_ast_switchcase_list, struct bc_ast_switchcase);
 
+BC_AST_DECL_ARR(bc_ast_switchcase_arr, struct bc_ast_switchcase);
+
 struct bc_ast_switch {
     struct bc_lex_loc loc;
     struct bc_ast_expr expr;
-    struct bc_ast_switchcase_list* cases;
+    struct bc_ast_switchcase_arr cases;
 };
 
 struct bc_ast_loop {
@@ -338,14 +378,16 @@ struct bc_ast_struct_item {
 
 BC_AST_DECL_LIST(bc_ast_struct_item_list, struct bc_ast_struct_item);
 
+BC_AST_DECL_ARR(bc_ast_struct_item_arr, struct bc_ast_struct_item);
+
 struct bc_ast_struct {
     struct bc_lex_loc loc;
-    struct bc_ast_struct_item_list* items;
+    struct bc_ast_struct_item_arr items;
 };
 
 struct bc_ast_enum {
     struct bc_lex_loc loc;
-    struct bc_ast_ident_list* items;
+    struct bc_ast_ident_arr items;
 };
 
 struct bc_ast_const {
@@ -388,30 +430,31 @@ struct bc_ast_top_level {
 
 BC_AST_DECL_LIST(bc_ast_top_level_list, struct bc_ast_top_level);
 
+BC_AST_DECL_ARR(bc_ast_top_level_arr, struct bc_ast_top_level);
+
 struct bc_ast_module {
     struct bc_lex_loc loc;
-    struct bc_ast_top_level_list* top_level_items;
+    struct bc_ast_top_level_arr top_level_items;
 };
 
 void bc_ast_print_stmt(struct bc_ast_stmt v, uint32_t indent);
 
-void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent);
+void bc_ast_print_stmt_arr(const struct bc_ast_stmt_arr v, uint32_t indent);
 
 void bc_ast_print_block(struct bc_ast_block v, uint32_t indent);
 
-void bc_ast_print_ident_list(
-    const struct bc_ast_ident_list* v, uint32_t indent);
+void bc_ast_print_ident_arr(const struct bc_ast_ident_arr v, uint32_t indent);
 
 void bc_ast_print_import(struct bc_ast_import v, uint32_t indent);
 
 void bc_ast_print_type(struct bc_ast_type v, uint32_t indent);
 
-void bc_ast_print_type_list(const struct bc_ast_type_list* v, uint32_t indent);
+void bc_ast_print_type_arr(const struct bc_ast_type_arr v, uint32_t indent);
 
 void bc_ast_print_func_param(struct bc_ast_func_param v, uint32_t indent);
 
-void bc_ast_print_func_param_list(
-    const struct bc_ast_func_param_list* v, uint32_t indent);
+void bc_ast_print_func_param_arr(
+    const struct bc_ast_func_param_arr v, uint32_t indent);
 
 void bc_ast_print_func(struct bc_ast_func v, uint32_t indent);
 
@@ -419,20 +462,20 @@ void bc_ast_print_literal(struct bc_ast_literal v, uint32_t indent);
 
 void bc_ast_print_expr(struct bc_ast_expr v, uint32_t indent);
 
-void bc_ast_print_expr_list(const struct bc_ast_expr_list* v, uint32_t indent);
+void bc_ast_print_expr_arr(const struct bc_ast_expr_arr v, uint32_t indent);
 
 void bc_ast_print_let(struct bc_ast_let v, uint32_t indent);
 
 void bc_ast_print_elif(struct bc_ast_elif v, uint32_t indent);
 
-void bc_ast_print_elif_list(const struct bc_ast_elif_list* v, uint32_t indent);
+void bc_ast_print_elif_arr(const struct bc_ast_elif_arr v, uint32_t indent);
 
 void bc_ast_print_if(struct bc_ast_if v, uint32_t indent);
 
 void bc_ast_print_switchcase(struct bc_ast_switchcase v, uint32_t indent);
 
-void bc_ast_print_switchcase_list(
-    const struct bc_ast_switchcase_list* v, uint32_t indent);
+void bc_ast_print_switchcase_arr(
+    const struct bc_ast_switchcase_arr v, uint32_t indent);
 
 void bc_ast_print_switch(struct bc_ast_switch v, uint32_t indent);
 
@@ -448,8 +491,8 @@ void bc_ast_print_defer(struct bc_ast_defer v, uint32_t indent);
 
 void bc_ast_print_struct_item(struct bc_ast_struct_item v, uint32_t indent);
 
-void bc_ast_print_struct_item_list(
-    const struct bc_ast_struct_item_list* v, uint32_t indent);
+void bc_ast_print_struct_item_arr(
+    const struct bc_ast_struct_item_arr v, uint32_t indent);
 
 void bc_ast_print_struct(struct bc_ast_struct v, uint32_t indent);
 
@@ -461,8 +504,8 @@ void bc_ast_print_decl(struct bc_ast_decl v, uint32_t indent);
 
 void bc_ast_print_top_level(struct bc_ast_top_level v, uint32_t indent);
 
-void bc_ast_print_top_level_list(
-    const struct bc_ast_top_level_list* v, uint32_t indent);
+void bc_ast_print_top_level_arr(
+    const struct bc_ast_top_level_arr v, uint32_t indent);
 
 void bc_ast_print_module(struct bc_ast_module v, uint32_t indent);
 

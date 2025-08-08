@@ -44,14 +44,14 @@ struct bc_parse {
     void* err_user_data;
     bc_parse_tok_callback tok_callback;
     void* tok_user_data;
-    struct bc_mem_arena node_arena;
+    struct bc_mem_arena* mem_arena;
+    struct bc_mem_arena* temp_mem_arena;
 };
 
 struct bc_parse bc_parse_new(struct bc_lex lex,
     bc_parse_err_callback err_callback, void* err_user_data,
-    bc_parse_tok_callback tok_callback, void* tok_user_data);
-
-void bc_parse_free(struct bc_parse parse);
+    bc_parse_tok_callback tok_callback, void* tok_user_data,
+    struct bc_mem_arena* mem_arena, struct bc_mem_arena* temp_mem_arena);
 
 bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import);
 

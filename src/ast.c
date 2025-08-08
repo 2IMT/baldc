@@ -95,16 +95,15 @@ void bc_ast_print_stmt(struct bc_ast_stmt v, uint32_t indent) {
     }
 }
 
-void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent) {
+void bc_ast_print_stmt_arr(const struct bc_ast_stmt_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("stmt_list {$n");
-    while (v != NULL) {
-        bc_ast_print_stmt(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_stmt(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -113,24 +112,22 @@ void bc_ast_print_stmt_list(const struct bc_ast_stmt_list* v, uint32_t indent) {
 void bc_ast_print_block(struct bc_ast_block v, uint32_t indent) {
     _indent(indent);
     bc_printf("block {$n");
-    bc_ast_print_stmt_list(v.stmts, indent + _I);
+    bc_ast_print_stmt_arr(v.stmts, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");
 }
 
-void bc_ast_print_ident_list(
-    const struct bc_ast_ident_list* v, uint32_t indent) {
+void bc_ast_print_ident_arr(const struct bc_ast_ident_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("ident_list {$n");
-    while (v != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
         _indent(indent + _I);
-        bc_printf(BC_STRV_PRNT, BC_STRV_PRNTV(v->item));
-        if (v->next != NULL) {
+        bc_printf(BC_STRV_PRNT, BC_STRV_PRNTV(v.items[i]));
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -147,7 +144,7 @@ void bc_ast_print_import(struct bc_ast_import v, uint32_t indent) {
         bc_printf(",renamed_to:" BC_STRV_PRNT, BC_STRV_PRNTV(v.renamed_to));
     }
     bc_printf(") {$n");
-    bc_ast_print_ident_list(v.segments, indent + _I);
+    bc_ast_print_ident_arr(v.segments, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");
@@ -187,7 +184,7 @@ void bc_ast_print_type(struct bc_ast_type v, uint32_t indent) {
         break;
     case BC_AST_TYPE_TUP:
         bc_printf("tup) {$n");
-        bc_ast_print_type_list(v.val.tup, indent + _I);
+        bc_ast_print_type_arr(v.val.tup, indent + _I);
         bc_printf("$n");
         _indent(indent);
         bc_printf("}");
@@ -196,7 +193,7 @@ void bc_ast_print_type(struct bc_ast_type v, uint32_t indent) {
         bc_printf("func) {$n");
         _indent(indent + _I);
         bc_printf("params {$n");
-        bc_ast_print_type_list(v.val.func->params, indent + _I * 2);
+        bc_ast_print_type_arr(v.val.func->params, indent + _I * 2);
         bc_printf("$n");
         _indent(indent + _I);
         bc_printf("}$n");
@@ -212,7 +209,7 @@ void bc_ast_print_type(struct bc_ast_type v, uint32_t indent) {
     case BC_AST_TYPE_PATH:
         bc_printf("path(is_root:$s,super_count:$i)) {$n",
             v.val.path->is_root ? "true" : "false", v.val.path->super_count);
-        bc_ast_print_ident_list(v.val.path->segments, indent + _I);
+        bc_ast_print_ident_arr(v.val.path->segments, indent + _I);
         bc_printf("$n");
         _indent(indent);
         bc_printf("}");
@@ -220,16 +217,15 @@ void bc_ast_print_type(struct bc_ast_type v, uint32_t indent) {
     }
 }
 
-void bc_ast_print_type_list(const struct bc_ast_type_list* v, uint32_t indent) {
+void bc_ast_print_type_arr(const struct bc_ast_type_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("types {$n");
-    while (v != NULL) {
-        bc_ast_print_type(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_type(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -244,17 +240,16 @@ void bc_ast_print_func_param(struct bc_ast_func_param v, uint32_t indent) {
     bc_printf("}");
 }
 
-void bc_ast_print_func_param_list(
-    const struct bc_ast_func_param_list* v, uint32_t indent) {
+void bc_ast_print_func_param_arr(
+    const struct bc_ast_func_param_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("params {$n");
-    while (v != NULL) {
-        bc_ast_print_func_param(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_func_param(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -263,7 +258,7 @@ void bc_ast_print_func_param_list(
 void bc_ast_print_func(struct bc_ast_func v, uint32_t indent) {
     _indent(indent);
     bc_printf("func {$n");
-    bc_ast_print_func_param_list(v.params, indent + _I);
+    bc_ast_print_func_param_arr(v.params, indent + _I);
     bc_printf("$n");
     bc_ast_print_type(v.ret, indent + _I);
     bc_printf("$n");
@@ -308,7 +303,7 @@ void bc_ast_print_literal(struct bc_ast_literal v, uint32_t indent) {
         switch (v.val.array.kind) {
         case BC_AST_LITERAL_ARRAY_REGULAR:
             bc_printf("array(regular)) {$n");
-            bc_ast_print_expr_list(v.val.array.val.regular, indent + _I);
+            bc_ast_print_expr_arr(v.val.array.val.regular, indent + _I);
             break;
         case BC_AST_LITERAL_ARRAY_DEFAULT:
             bc_printf("array(default)) {$n");
@@ -373,7 +368,7 @@ void bc_ast_print_expr(struct bc_ast_expr v, uint32_t indent) {
         bc_printf("call) {$n");
         bc_ast_print_expr(*v.val.call.expr, indent + _I);
         bc_printf("$n");
-        bc_ast_print_expr_list(v.val.call.args, indent + _I);
+        bc_ast_print_expr_arr(v.val.call.args, indent + _I);
         bc_printf("$n");
         _indent(indent);
         bc_printf("}");
@@ -413,16 +408,15 @@ void bc_ast_print_expr(struct bc_ast_expr v, uint32_t indent) {
     }
 }
 
-void bc_ast_print_expr_list(const struct bc_ast_expr_list* v, uint32_t indent) {
+void bc_ast_print_expr_arr(const struct bc_ast_expr_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("expr_list {$n");
-    while (v != NULL) {
-        bc_ast_print_expr(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_expr(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -457,16 +451,15 @@ void bc_ast_print_elif(struct bc_ast_elif v, uint32_t indent) {
     bc_printf("}");
 }
 
-void bc_ast_print_elif_list(const struct bc_ast_elif_list* v, uint32_t indent) {
+void bc_ast_print_elif_arr(const struct bc_ast_elif_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("elif_list {$n");
-    while (v != NULL) {
-        bc_ast_print_elif(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_elif(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -479,7 +472,7 @@ void bc_ast_print_if(struct bc_ast_if v, uint32_t indent) {
     bc_printf("$n");
     bc_ast_print_block(v.main, indent + _I);
     bc_printf("$n");
-    bc_ast_print_elif_list(v.elifs, indent + _I);
+    bc_ast_print_elif_arr(v.elifs, indent + _I);
     bc_printf("$n");
     if (v.has_else) {
         bc_ast_print_block(v.else_, indent + _I);
@@ -504,17 +497,16 @@ void bc_ast_print_switchcase(struct bc_ast_switchcase v, uint32_t indent) {
     bc_printf("}");
 }
 
-void bc_ast_print_switchcase_list(
-    const struct bc_ast_switchcase_list* v, uint32_t indent) {
+void bc_ast_print_switchcase_arr(
+    const struct bc_ast_switchcase_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("switchcase_list {$n");
-    while (v != NULL) {
-        bc_ast_print_switchcase(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_switchcase(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -525,7 +517,7 @@ void bc_ast_print_switch(struct bc_ast_switch v, uint32_t indent) {
     bc_printf("switch {$n");
     bc_ast_print_expr(v.expr, indent + _I);
     bc_printf("$n");
-    bc_ast_print_switchcase_list(v.cases, indent + _I);
+    bc_ast_print_switchcase_arr(v.cases, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");
@@ -597,16 +589,15 @@ void bc_ast_print_struct_item(struct bc_ast_struct_item v, uint32_t indent) {
     bc_printf("}");
 }
 
-void bc_ast_print_struct_item_list(
-    const struct bc_ast_struct_item_list* v, uint32_t indent) {
+void bc_ast_print_struct_item_arr(
+    const struct bc_ast_struct_item_arr v, uint32_t indent) {
     bc_printf("struct_item_list {$n");
-    while (v != NULL) {
-        bc_ast_print_struct_item(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_struct_item(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -615,7 +606,7 @@ void bc_ast_print_struct_item_list(
 void bc_ast_print_struct(struct bc_ast_struct v, uint32_t indent) {
     _indent(indent);
     bc_printf("struct {$n");
-    bc_ast_print_struct_item_list(v.items, indent + _I);
+    bc_ast_print_struct_item_arr(v.items, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");
@@ -624,7 +615,7 @@ void bc_ast_print_struct(struct bc_ast_struct v, uint32_t indent) {
 void bc_ast_print_enum(struct bc_ast_enum v, uint32_t indent) {
     _indent(indent);
     bc_printf("enum {$n");
-    bc_ast_print_ident_list(v.items, indent + _I);
+    bc_ast_print_ident_arr(v.items, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");
@@ -687,17 +678,16 @@ void bc_ast_print_top_level(struct bc_ast_top_level v, uint32_t indent) {
     bc_printf("}");
 }
 
-void bc_ast_print_top_level_list(
-    const struct bc_ast_top_level_list* v, uint32_t indent) {
+void bc_ast_print_top_level_arr(
+    const struct bc_ast_top_level_arr v, uint32_t indent) {
     _indent(indent);
     bc_printf("top_level_list {$n");
-    while (v != NULL) {
-        bc_ast_print_top_level(v->item, indent + _I);
-        if (v->next != NULL) {
+    for (size_t i = 0; i < v.len; i++) {
+        bc_ast_print_top_level(v.items[i], indent + _I);
+        if (i < v.len - 1) {
             bc_printf(",");
         }
         bc_printf("$n");
-        v = v->next;
     }
     _indent(indent);
     bc_printf("}");
@@ -706,7 +696,7 @@ void bc_ast_print_top_level_list(
 void bc_ast_print_module(struct bc_ast_module v, uint32_t indent) {
     _indent(indent);
     bc_printf("module {$n");
-    bc_ast_print_top_level_list(v.top_level_items, indent + _I);
+    bc_ast_print_top_level_arr(v.top_level_items, indent + _I);
     bc_printf("$n");
     _indent(indent);
     bc_printf("}");

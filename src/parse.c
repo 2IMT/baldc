@@ -8,7 +8,13 @@
 #define _LOC_END(node) \
     node->loc = bc_lex_loc_merge(_loc_start, parse->last_loc);
 
-#define _ALLOC_NODE(type) BC_MEM_ARENA_ALLOC_TYPE(&parse->node_arena, type)
+#define _ALLOC_NODE(type) BC_MEM_ARENA_ALLOC_TYPE(parse->mem_arena, type)
+
+#define _ALLOC_TEMP_NODE(type) \
+    BC_MEM_ARENA_ALLOC_TYPE(parse->temp_mem_arena, type)
+
+#define _LIST_FLATTEN(list_type, item_type, list, arr) \
+    BC_AST_LIST_FLATTEN(list_type, item_type, list, arr, parse->mem_arena);
 
 #define _ERR_EXPECTED_MULTIPLE(...) \
     do { \
@@ -197,22 +203,19 @@ static bool _curr(struct bc_parse* parse, enum bc_tok_kind kind) {
 
 struct bc_parse bc_parse_new(struct bc_lex lex,
     bc_parse_err_callback err_callback, void* err_user_data,
-    bc_parse_tok_callback tok_callback, void* tok_user_data) {
+    bc_parse_tok_callback tok_callback, void* tok_user_data,
+    struct bc_mem_arena* mem_arena, struct bc_mem_arena* temp_mem_arena) {
     struct bc_parse parse = {
         .lex = lex,
         .err_callback = err_callback,
         .err_user_data = err_user_data,
         .tok_callback = tok_callback,
         .tok_user_data = tok_user_data,
-        .node_arena = bc_mem_arena_new(8 * 1024),
+        .mem_arena = mem_arena,
+        .temp_mem_arena = temp_mem_arena,
     };
     _nexttok(&parse);
     return parse;
-}
-
-void bc_parse_free(struct bc_parse parse) {
-    bc_lex_free(parse.lex);
-    bc_mem_arena_free(parse.node_arena);
 }
 
 bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
@@ -223,7 +226,7 @@ bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
     }
 
     import->renamed_to = (struct bc_strv) { 0 };
-    import->segments = NULL;
+    import->segments = (struct bc_ast_ident_arr) { 0 };
     import->is_glob = false;
     import->is_renamed = false;
     import->super_count = 0;
@@ -246,14 +249,15 @@ bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
         import->super_count++;
     }
 
+    struct bc_ast_ident_list* segment_list = NULL;
     while (true) {
         if (_accept_get(parse, BC_TOK_IDENT, &tok)) {
             struct bc_ast_ident_list* new_segment =
-                _ALLOC_NODE(struct bc_ast_ident_list);
+                _ALLOC_TEMP_NODE(struct bc_ast_ident_list);
             new_segment->item = tok.val.ident;
             new_segment->next = NULL;
-            if (import->segments == NULL) {
-                import->segments = new_segment;
+            if (segment_list == NULL) {
+                segment_list = new_segment;
                 curr = new_segment;
             } else {
                 curr->next = new_segment;
@@ -270,6 +274,8 @@ bool bc_parse_import(struct bc_parse* parse, struct bc_ast_import* import) {
             return false;
         }
     }
+    _LIST_FLATTEN(struct bc_ast_ident_list, struct bc_strv, segment_list,
+        import->segments);
 
     if (_accept(parse, BC_TOK_KW_AS)) {
         if (!_expect_get(parse, BC_TOK_IDENT, &tok)) {
@@ -330,28 +336,37 @@ bool bc_parse_literal(struct bc_parse* parse, struct bc_ast_literal* lit) {
             }
         } else {
             lit->val.array.kind = BC_AST_LITERAL_ARRAY_REGULAR;
-            lit->val.array.val.regular = NULL;
             if (_accept(parse, BC_TOK_RBRACKET)) {
+                lit->val.array.val.regular = (struct bc_ast_expr_arr) {
+                    .items = NULL,
+                    .len = 0,
+                };
                 return true;
             }
-            lit->val.array.val.regular = _ALLOC_NODE(struct bc_ast_expr_list);
-            if (!bc_parse_expression_list(
-                    parse, BC_TOK_RBRACKET, lit->val.array.val.regular)) {
+            struct bc_ast_expr_list* expr_list =
+                _ALLOC_TEMP_NODE(struct bc_ast_expr_list);
+            if (!bc_parse_expression_list(parse, BC_TOK_RBRACKET, expr_list)) {
                 return false;
             }
+            _LIST_FLATTEN(struct bc_ast_expr_list, struct bc_ast_expr,
+                expr_list, lit->val.array.val.regular);
             if (!_expect(parse, BC_TOK_RBRACKET)) {
                 return false;
             }
         }
     } else if (_accept(parse, BC_TOK_KW_TUP)) {
         lit->kind = BC_AST_LITERAL_TUP;
-        lit->val.tuple = _ALLOC_NODE(struct bc_ast_expr_list);
+        // lit->val.tuple = _ALLOC_NODE(struct bc_ast_expr_arr);
+        struct bc_ast_expr_list* tuple =
+            _ALLOC_TEMP_NODE(struct bc_ast_expr_list);
         if (!_expect(parse, BC_TOK_LPAREN)) {
             return false;
         }
-        if (!bc_parse_expression_list(parse, BC_TOK_RPAREN, lit->val.tuple)) {
+        if (!bc_parse_expression_list(parse, BC_TOK_RPAREN, tuple)) {
             return false;
         }
+        _LIST_FLATTEN(
+            struct bc_ast_expr_list, struct bc_ast_expr, tuple, lit->val.tuple);
         if (!_expect(parse, BC_TOK_RPAREN)) {
             return false;
         }
@@ -375,7 +390,8 @@ bool bc_parse_expression_list(struct bc_parse* parse,
     }
     list->next = NULL;
     while (_accept(parse, BC_TOK_COMMA)) {
-        struct bc_ast_expr_list* next = _ALLOC_NODE(struct bc_ast_expr_list);
+        struct bc_ast_expr_list* next =
+            _ALLOC_TEMP_NODE(struct bc_ast_expr_list);
         next->next = NULL;
         if (_curr(parse, terminator)) {
             break;
@@ -455,18 +471,22 @@ bool bc_parse_expression_bp(
                 lhs = res;
             } else if (_accept(parse, BC_TOK_LPAREN)) {
                 res.kind = BC_AST_EXPR_CALL;
-                res.val.call.args = NULL;
+                res.val.call.args = (struct bc_ast_expr_arr) {
+                    .items = NULL,
+                    .len = 0,
+                };
                 res.val.call.expr = res_lhs;
                 if (_accept(parse, BC_TOK_RPAREN)) {
                     lhs = res;
                     continue;
                 } else {
                     struct bc_ast_expr_list* args =
-                        _ALLOC_NODE(struct bc_ast_expr_list);
-                    res.val.call.args = args;
+                        _ALLOC_TEMP_NODE(struct bc_ast_expr_list);
                     if (!bc_parse_expression_list(parse, BC_TOK_RPAREN, args)) {
                         return false;
                     }
+                    _LIST_FLATTEN(struct bc_ast_expr_list, struct bc_ast_expr,
+                        args, res.val.call.args);
                     if (!_expect(parse, BC_TOK_RPAREN)) {
                         return false;
                     }
@@ -557,7 +577,10 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
     _LOC_START();
 
     if_->has_else = false;
-    if_->elifs = NULL;
+    if_->elifs = (struct bc_ast_elif_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     if (!_expect(parse, BC_TOK_KW_IF)) {
         return false;
     }
@@ -568,8 +591,9 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
         return false;
     }
     if (_accept(parse, BC_TOK_KW_ELIF)) {
-        if_->elifs = _ALLOC_NODE(struct bc_ast_elif_list);
-        struct bc_ast_elif_list* curr = if_->elifs;
+        struct bc_ast_elif_list* elif_list =
+            _ALLOC_TEMP_NODE(struct bc_ast_elif_list);
+        struct bc_ast_elif_list* curr = elif_list;
         curr->next = NULL;
         if (!bc_parse_expression(parse, &curr->item.expr)) {
             return false;
@@ -578,7 +602,7 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
             return false;
         }
         while (_accept(parse, BC_TOK_KW_ELIF)) {
-            curr->next = _ALLOC_NODE(struct bc_ast_elif_list);
+            curr->next = _ALLOC_TEMP_NODE(struct bc_ast_elif_list);
             curr->next->next = NULL;
             curr = curr->next;
             if (!bc_parse_expression(parse, &curr->item.expr)) {
@@ -588,6 +612,8 @@ bool bc_parse_if(struct bc_parse* parse, struct bc_ast_if* if_) {
                 return false;
             }
         }
+        _LIST_FLATTEN(
+            struct bc_ast_elif_list, struct bc_ast_elif, elif_list, if_->elifs);
     }
     if (_accept(parse, BC_TOK_KW_ELSE)) {
         if_->has_else = true;
@@ -627,7 +653,10 @@ bool bc_parse_switchcase(
 bool bc_parse_switch(struct bc_parse* parse, struct bc_ast_switch* switch_) {
     _LOC_START();
 
-    switch_->cases = NULL;
+    switch_->cases = (struct bc_ast_switchcase_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     if (!_expect(parse, BC_TOK_KW_SWITCH)) {
         return false;
     }
@@ -638,20 +667,23 @@ bool bc_parse_switch(struct bc_parse* parse, struct bc_ast_switch* switch_) {
         return false;
     }
     if (!_curr(parse, BC_TOK_RBRACE)) {
-        switch_->cases = _ALLOC_NODE(struct bc_ast_switchcase_list);
-        struct bc_ast_switchcase_list* curr = switch_->cases;
+        struct bc_ast_switchcase_list* switchcase_list =
+            _ALLOC_TEMP_NODE(struct bc_ast_switchcase_list);
+        struct bc_ast_switchcase_list* curr = switchcase_list;
         curr->next = NULL;
         if (!bc_parse_switchcase(parse, &curr->item)) {
             return false;
         }
         while (!_curr(parse, BC_TOK_RBRACE)) {
-            curr->next = _ALLOC_NODE(struct bc_ast_switchcase_list);
+            curr->next = _ALLOC_TEMP_NODE(struct bc_ast_switchcase_list);
             curr->next->next = NULL;
             curr = curr->next;
             if (!bc_parse_switchcase(parse, &curr->item)) {
                 return false;
             }
         }
+        _LIST_FLATTEN(struct bc_ast_switchcase_list, struct bc_ast_switchcase,
+            switchcase_list, switch_->cases);
     }
     if (!_expect(parse, BC_TOK_RBRACE)) {
         return false;
@@ -848,20 +880,23 @@ bool bc_parse_block(struct bc_parse* parse, struct bc_ast_block* block) {
         return false;
     }
     if (!_curr(parse, BC_TOK_RBRACE)) {
-        block->stmts = _ALLOC_NODE(struct bc_ast_stmt_list);
-        struct bc_ast_stmt_list* curr = block->stmts;
+        struct bc_ast_stmt_list* stmt_list =
+            _ALLOC_TEMP_NODE(struct bc_ast_stmt_list);
+        struct bc_ast_stmt_list* curr = stmt_list;
         curr->next = NULL;
         if (!bc_parse_stmt(parse, &curr->item)) {
             return false;
         }
         while (!_curr(parse, BC_TOK_RBRACE)) {
-            curr->next = _ALLOC_NODE(struct bc_ast_stmt_list);
+            curr->next = _ALLOC_TEMP_NODE(struct bc_ast_stmt_list);
             curr->next->next = NULL;
             if (!bc_parse_stmt(parse, &curr->next->item)) {
                 return false;
             }
             curr = curr->next;
         }
+        _LIST_FLATTEN(struct bc_ast_stmt_list, struct bc_ast_stmt, stmt_list,
+            block->stmts);
     }
     if (!_expect(parse, BC_TOK_RBRACE)) {
         return false;
@@ -876,7 +911,10 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
 
     path->is_root = false;
     path->super_count = 0;
-    path->segments = NULL;
+    path->segments = (struct bc_ast_ident_arr) {
+        .items = NULL,
+        .len = 0,
+    };
 
     struct bc_ast_ident_list* curr = NULL;
     struct bc_tok tok;
@@ -895,19 +933,22 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
         path->super_count++;
     }
 
+    struct bc_ast_ident_list* segments = NULL;
     while (true) {
         if (_accept_get(parse, BC_TOK_IDENT, &tok)) {
             struct bc_ast_ident_list* new_segment =
-                _ALLOC_NODE(struct bc_ast_ident_list);
+                _ALLOC_TEMP_NODE(struct bc_ast_ident_list);
             new_segment->item = tok.val.ident;
             new_segment->next = NULL;
-            if (path->segments == NULL) {
-                path->segments = new_segment;
+            if (segments == NULL) {
+                segments = new_segment;
                 curr = new_segment;
             } else {
                 curr->next = new_segment;
                 curr = new_segment;
             }
+            _LIST_FLATTEN(struct bc_ast_ident_list, struct bc_strv, segments,
+                path->segments);
         }
         if (!_accept(parse, BC_TOK_COLCOL)) {
             break;
@@ -921,7 +962,10 @@ bool bc_parse_type_path(struct bc_parse* parse, struct bc_ast_type_path* path) {
 bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
     _LOC_START();
 
-    func->params = NULL;
+    func->params = (struct bc_ast_type_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     func->ret.kind = BC_AST_TYPE_UNIT;
     if (!_expect(parse, BC_TOK_KW_FUNC)) {
         return false;
@@ -930,9 +974,11 @@ bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
         return false;
     }
     if (!_curr(parse, BC_TOK_RPAREN)) {
-        struct bc_ast_type_list* param = _ALLOC_NODE(struct bc_ast_type_list);
+        struct bc_ast_type_list* params = NULL;
+        struct bc_ast_type_list* param =
+            _ALLOC_TEMP_NODE(struct bc_ast_type_list);
         param->next = NULL;
-        func->params = param;
+        params = param;
         if (!bc_parse_type(parse, &param->item)) {
             return false;
         }
@@ -940,13 +986,15 @@ bool bc_parse_type_func(struct bc_parse* parse, struct bc_ast_type_func* func) {
             if (_curr(parse, BC_TOK_RPAREN)) {
                 break;
             }
-            param->next = _ALLOC_NODE(struct bc_ast_type_list);
+            param->next = _ALLOC_TEMP_NODE(struct bc_ast_type_list);
             param->next->next = NULL;
             if (!bc_parse_type(parse, &param->next->item)) {
                 return false;
             }
             param = param->next;
         }
+        _LIST_FLATTEN(
+            struct bc_ast_type_list, struct bc_ast_type, params, func->params);
     }
     if (!_expect(parse, BC_TOK_RPAREN)) {
         return false;
@@ -989,11 +1037,13 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
         }
     } else if (_accept(parse, BC_TOK_KW_TUP)) {
         type->kind = BC_AST_TYPE_TUP;
-        type->val.tup = _ALLOC_NODE(struct bc_ast_type_list);
+        // type->val.tup = _ALLOC_NODE(struct bc_ast_type_list);
+        struct bc_ast_type_list* tup =
+            _ALLOC_TEMP_NODE(struct bc_ast_type_list);
         if (!_expect(parse, BC_TOK_LPAREN)) {
             return false;
         }
-        struct bc_ast_type_list* curr = type->val.tup;
+        struct bc_ast_type_list* curr = tup;
         curr->next = NULL;
         if (!bc_parse_type(parse, &curr->item)) {
             return false;
@@ -1002,13 +1052,15 @@ bool bc_parse_type(struct bc_parse* parse, struct bc_ast_type* type) {
             if (_curr(parse, BC_TOK_RPAREN)) {
                 break;
             }
-            curr->next = _ALLOC_NODE(struct bc_ast_type_list);
+            curr->next = _ALLOC_TEMP_NODE(struct bc_ast_type_list);
             curr->next->next = NULL;
             if (!bc_parse_type(parse, &curr->next->item)) {
                 return false;
             }
             curr = curr->next;
         }
+        _LIST_FLATTEN(
+            struct bc_ast_type_list, struct bc_ast_type, tup, type->val.tup);
         if (!_expect(parse, BC_TOK_RPAREN)) {
             return false;
         }
@@ -1059,7 +1111,10 @@ bool bc_parse_func_param(
 bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
     _LOC_START();
 
-    func->params = NULL;
+    func->params = (struct bc_ast_func_param_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     func->ret.kind = BC_AST_TYPE_UNIT;
     if (!_expect(parse, BC_TOK_KW_FUNC)) {
         return false;
@@ -1069,9 +1124,9 @@ bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
     }
     if (_curr(parse, BC_TOK_IDENT)) {
         struct bc_ast_func_param_list* param =
-            _ALLOC_NODE(struct bc_ast_func_param_list);
+            _ALLOC_TEMP_NODE(struct bc_ast_func_param_list);
         param->next = NULL;
-        func->params = param;
+        struct bc_ast_func_param_list* params = param;
         if (!bc_parse_func_param(parse, &param->item)) {
             return false;
         }
@@ -1079,13 +1134,15 @@ bool bc_parse_func(struct bc_parse* parse, struct bc_ast_func* func) {
             if (_curr(parse, BC_TOK_RPAREN)) {
                 break;
             }
-            param->next = _ALLOC_NODE(struct bc_ast_func_param_list);
+            param->next = _ALLOC_TEMP_NODE(struct bc_ast_func_param_list);
             param->next->next = NULL;
             if (!bc_parse_func_param(parse, &param->next->item)) {
                 return false;
             }
             param = param->next;
         }
+        _LIST_FLATTEN(struct bc_ast_func_param_list, struct bc_ast_func_param,
+            params, func->params);
     }
     if (!_expect(parse, BC_TOK_RPAREN)) {
         return false;
@@ -1139,10 +1196,15 @@ bool bc_parse_struct_decl(
         return false;
     }
 
-    struct_->items = NULL;
+    struct_->items = (struct bc_ast_struct_item_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     if (_curr(parse, BC_TOK_KW_EXPORT) || _curr(parse, BC_TOK_IDENT)) {
-        struct_->items = _ALLOC_NODE(struct bc_ast_struct_item_list);
-        struct bc_ast_struct_item_list* curr = struct_->items;
+        // struct_->items = _ALLOC_NODE(struct bc_ast_struct_item_list);
+        struct bc_ast_struct_item_list* items =
+            _ALLOC_TEMP_NODE(struct bc_ast_struct_item_list);
+        struct bc_ast_struct_item_list* curr = items;
         curr->next = NULL;
         if (!bc_parse_struct_item(parse, &curr->item)) {
             return false;
@@ -1151,13 +1213,15 @@ bool bc_parse_struct_decl(
             if (_curr(parse, BC_TOK_RBRACE)) {
                 break;
             }
-            curr->next = _ALLOC_NODE(struct bc_ast_struct_item_list);
+            curr->next = _ALLOC_TEMP_NODE(struct bc_ast_struct_item_list);
             curr->next->next = NULL;
             if (!bc_parse_struct_item(parse, &curr->next->item)) {
                 return false;
             }
             curr = curr->next;
         }
+        _LIST_FLATTEN(struct bc_ast_struct_item_list, struct bc_ast_struct_item,
+            items, struct_->items);
     }
 
     if (!_expect(parse, BC_TOK_RBRACE)) {
@@ -1181,8 +1245,10 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
     if (!_expect_get(parse, BC_TOK_IDENT, &tok)) {
         return false;
     }
-    enum_->items = _ALLOC_NODE(struct bc_ast_ident_list);
-    struct bc_ast_ident_list* curr = enum_->items;
+    // enum_->items = _ALLOC_NODE(struct bc_ast_ident_list);
+    struct bc_ast_ident_list* items =
+        _ALLOC_TEMP_NODE(struct bc_ast_ident_list);
+    struct bc_ast_ident_list* curr = items;
     curr->next = NULL;
     curr->item = tok.val.ident;
     while (_accept(parse, BC_TOK_COMMA)) {
@@ -1192,11 +1258,13 @@ bool bc_parse_enum_decl(struct bc_parse* parse, struct bc_ast_enum* enum_) {
         if (!_expect_get(parse, BC_TOK_IDENT, &tok)) {
             break;
         }
-        curr->next = _ALLOC_NODE(struct bc_ast_ident_list);
+        curr->next = _ALLOC_TEMP_NODE(struct bc_ast_ident_list);
         curr->next->next = NULL;
         curr->next->item = tok.val.ident;
         curr = curr->next;
     }
+    _LIST_FLATTEN(
+        struct bc_ast_ident_list, struct bc_strv, items, enum_->items);
     if (!_expect(parse, BC_TOK_RBRACE)) {
         return false;
     }
@@ -1336,7 +1404,7 @@ bool bc_parse_top_level_list(
     while (_curr(parse, BC_TOK_KW_IMPORT) || _curr(parse, BC_TOK_IDENT) ||
            _curr(parse, BC_TOK_KW_EXPORT)) {
         struct bc_ast_top_level_list* next =
-            _ALLOC_NODE(struct bc_ast_top_level_list);
+            _ALLOC_TEMP_NODE(struct bc_ast_top_level_list);
         next->next = NULL;
         if (!bc_parse_top_level_item(parse, &next->item)) {
             return false;
@@ -1350,10 +1418,16 @@ bool bc_parse_top_level_list(
 bool bc_parse_module(struct bc_parse* parse, struct bc_ast_module* module) {
     _LOC_START();
 
-    module->top_level_items = NULL;
+    module->top_level_items = (struct bc_ast_top_level_arr) {
+        .items = NULL,
+        .len = 0,
+    };
     if (!_curr(parse, BC_TOK_EOF)) {
-        module->top_level_items = _ALLOC_NODE(struct bc_ast_top_level_list);
-        bc_parse_top_level_list(parse, module->top_level_items);
+        struct bc_ast_top_level_list* items =
+            _ALLOC_TEMP_NODE(struct bc_ast_top_level_list);
+        bc_parse_top_level_list(parse, items);
+        _LIST_FLATTEN(struct bc_ast_top_level_list, struct bc_ast_top_level,
+            items, module->top_level_items);
     }
 
     _LOC_END(module);

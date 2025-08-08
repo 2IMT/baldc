@@ -499,21 +499,28 @@ int main(int argc, char** argv) {
 
     fclose(file);
 
-    struct bc_lex lex = bc_lex_new(bc_strv_from_str(file_data));
-    struct bc_parse parse =
-        bc_parse_new(lex, _err_callback, (void*)src, _tok_callback, (void*)src);
+    struct bc_mem_arena mem_arena = bc_mem_arena_new(1024 * 8);
+    struct bc_mem_arena temp_mem_arena = bc_mem_arena_new(1024 * 8);
+
+    struct bc_lex lex = bc_lex_new(bc_strv_from_str(file_data), &mem_arena);
+    struct bc_parse parse = bc_parse_new(lex, _err_callback, (void*)src,
+        _tok_callback, (void*)src, &mem_arena, &temp_mem_arena);
     struct bc_ast_module module = { 0 };
     if (!bc_parse_module(&parse, &module)) {
         bc_eprintf("error: parsing failed$n");
-        bc_parse_free(parse);
+        bc_mem_arena_free(mem_arena);
+        bc_mem_arena_free(temp_mem_arena);
         bc_str_free(file_data);
         return 1;
     }
 
+    // Not needed after parsing
+    bc_mem_arena_free(temp_mem_arena);
+
     bc_ast_print_module(module, 0);
     bc_printf("$n");
 
-    bc_parse_free(parse);
+    bc_mem_arena_free(mem_arena);
     bc_str_free(file_data);
 
     return 0;
