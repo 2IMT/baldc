@@ -2,16 +2,19 @@
 
 #include "lex.h"
 #include "str.h"
+#include "mem.h"
 
 #define _CREATE_LEXER(src) \
-    struct bc_lex _lex = bc_lex_new(BC_STRV_FROM_LIT(src)); \
+    struct bc_mem_arena _mem_arena = bc_mem_arena_new(1024 * 8); \
+    struct bc_lex _lex = bc_lex_new(BC_STRV_FROM_LIT(src), &_mem_arena); \
     struct bc_tok _tok;
 
 #define _RESET_LEXER(src) \
-    bc_lex_free(_lex); \
-    _lex = bc_lex_new(BC_STRV_FROM_LIT(src));
+    bc_mem_arena_free(_mem_arena); \
+    _mem_arena = bc_mem_arena_new(1024 * 8); \
+    _lex = bc_lex_new(BC_STRV_FROM_LIT(src), &_mem_arena);
 
-#define _FREE_LEXER() bc_lex_free(_lex);
+#define _FREE_LEXER() bc_mem_arena_free(_mem_arena);
 
 #define _NEXT() \
     _tok = bc_lex_next(&_lex); \
